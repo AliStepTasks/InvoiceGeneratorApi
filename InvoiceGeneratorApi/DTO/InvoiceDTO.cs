@@ -1,9 +1,12 @@
 ﻿using InvoiceGeneratorApi.Enums;
+using InvoiceGeneratorApi.Models;
+using Newtonsoft.Json;
 
-namespace InvoiceGeneratorApi.Models;
+namespace InvoiceGeneratorApi.DTO;
 
-public class Invoice
+public class InvoiceDTO
 {
+    [JsonIgnore]
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public DateTimeOffset StartDate { get; set; }
@@ -13,6 +16,4 @@ public class Invoice
     public string? Comment { get; set; }
     public InvoiceStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
-    public DateTimeOffset DeletedAt { get; set; }
 }

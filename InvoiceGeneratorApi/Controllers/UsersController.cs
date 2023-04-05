@@ -9,6 +9,7 @@ using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.Services;
 using InvoiceGeneratorApi.DTO;
+using Microsoft.Build.Framework;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -35,7 +36,9 @@ namespace InvoiceGeneratorApi.Controllers
         /// <returns></returns>
         // PUT: api/Users/Email
         [HttpPut("Email, OldPassword, NewPassword, NewPasswordConfirmation")]
-        public async Task<ActionResult<UserDTO>> ChangePassword(string Email, string OldPassword, string NewPassword, string NewPasswordConfirmation)
+        public async Task<ActionResult<UserDTO>> ChangePassword(
+            string Email, string OldPassword,
+            string NewPassword, string NewPasswordConfirmation)
         {
             if (_context.Users == null)
             {
@@ -76,7 +79,7 @@ namespace InvoiceGeneratorApi.Controllers
                 return BadRequest();
             }
 
-            var user = await _userService.EditUser(Email, Name, Address, PhoneNumber);
+            var user = await _userService.EditUser(Email, Name, Address, PhoneNumber, Password);
 
             return user is not null
                 ? user

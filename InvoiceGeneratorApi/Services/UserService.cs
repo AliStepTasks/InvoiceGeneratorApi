@@ -16,13 +16,15 @@ public class UserService : IUserService
 
     public async Task<UserDTO> ChangePassword(string Email, string OldPassword, string NewPassword)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == Email && u.Password == OldPassword);
-        if (user == null)
+        var user = _context.Users.FirstOrDefault(u => u.Email == Email);
+        var isValidPassword = BCrypt.Net.BCrypt.Verify(OldPassword, user.Password);
+
+        if (isValidPassword)
         {
             return null;
         }
 
-        user.Password = NewPassword;
+        user.Password = BCrypt.Net.BCrypt.HashPassword(NewPassword);
         user.UpdatedAt = DateTimeOffset.UtcNow;
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
@@ -32,8 +34,10 @@ public class UserService : IUserService
 
     public async Task<UserDTO> DeleteUser(string Email, string PasswordConfirmation)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == Email && u.Password == PasswordConfirmation);
-        if (user == null)
+        var user = _context.Users.FirstOrDefault(u => u.Email == Email);
+        var isValidPassword = BCrypt.Net.BCrypt.Verify(PasswordConfirmation, user.Password);
+
+        if (isValidPassword)
         {
             return null;
         }
@@ -46,10 +50,12 @@ public class UserService : IUserService
 
     public async Task<UserDTO> EditUser(
         string Email, string? Name,
-        string? Address, string? PhoneNumber)
+        string? Address, string? PhoneNumber, string Password)
     {
         var user = await _context.Users.FirstOrDefaultAsync(c => c.Email == Email);
-        if (user is null)
+        var isValidPassword = BCrypt.Net.BCrypt.Verify(Password, user.Password);
+
+        if (isValidPassword)
         {
             return null;
         }

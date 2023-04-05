@@ -11,7 +11,7 @@ public interface ICustomerService
     Task<CustomerDTO> AddCustomer(CustomerDTO customerDTO);
     Task<CustomerDTO> EditCustomer(
         string Email, string? Name,
-        string? Address, string? PhoneNumber);
+        string? Address, string? PhoneNumber, string Password);
     Task<CustomerDTO> ChangeCustomerStatus(string Email, CustomerStatus Status);
     Task<CustomerDTO> GetCustomer(string Email);
     Task<PaginationDTO<CustomerDTO>> GetCustomers(int page, int pageSize, string? search, OrderBy? orderBy);

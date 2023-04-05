@@ -70,8 +70,7 @@ namespace InvoiceGeneratorApi.Controllers
             {
                 return BadRequest();
             }
-
-            var updatedCustomer = await _customerService.EditCustomer(Email, Name, Address, PhoneNumber, Password, PasswordConfirmation);
+            var updatedCustomer = await _customerService.EditCustomer(Email, Name, Address, PhoneNumber, Password);
             
             return updatedCustomer is not null
                 ? updatedCustomer

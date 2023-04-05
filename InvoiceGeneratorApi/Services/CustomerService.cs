@@ -10,7 +10,7 @@ namespace InvoiceGeneratorApi.Services;
 
 public class CustomerService : ICustomerService
 {
-    private InvoiceApiDbContext _context;
+    private readonly InvoiceApiDbContext _context;
 
     public CustomerService(InvoiceApiDbContext context)
     {
@@ -23,6 +23,8 @@ public class CustomerService : ICustomerService
         customer.CreatedAt = DateTimeOffset.Now;
         customer.UpdatedAt = DateTimeOffset.Now;
         customer.DeletedAt = DateTimeOffset.MinValue;
+
+        customer.Password = BCrypt.Net.BCrypt.HashPassword(customer.Password);
 
         customer = _context.Customers.Add(customer).Entity;
         await _context.SaveChangesAsync();
@@ -46,10 +48,10 @@ public class CustomerService : ICustomerService
         }
 
         customer.Status = Status;
-        var updatedCustomer = _context.Customers.Update(customer).Entity;
+        customer = _context.Customers.Update(customer).Entity;
         await _context.SaveChangesAsync();
 
-        return CustomerToCustomerDto(updatedCustomer);
+        return CustomerToCustomerDto(customer);
     }
 
     /// <summary>
@@ -92,10 +94,14 @@ public class CustomerService : ICustomerService
     /// <exception cref="NotImplementedException"></exception>
     public async Task<CustomerDTO> EditCustomer(
         string Email, string? Name,
-        string? Address, string? PhoneNumber)
+        string? Address, string? PhoneNumber, string Password)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == Email);
-        if (customer is null)
+        var customer = await _context.Customers.FirstOrDefaultAsync
+            (c => c.Email == Email);
+
+        var isValidPassword = BCrypt.Net.BCrypt.Verify(Password, customer.Password);
+
+        if (isValidPassword)
         {
             return null;
         }
@@ -170,7 +176,6 @@ public class CustomerService : ICustomerService
 
         return paginatedList;
     }
-
 
     /// <summary>
     /// Converts CustomerDTO to Customer

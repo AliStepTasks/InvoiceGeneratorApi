@@ -1,5 +1,6 @@
 ﻿using InvoiceGeneratorApi.Models;
 using Microsoft.EntityFrameworkCore;
+using InvoiceGeneratorApi.DTO;
 
 namespace InvoiceGeneratorApi.Data;
 
@@ -7,7 +8,7 @@ public class InvoiceApiDbContext : DbContext
 {
 	public InvoiceApiDbContext(DbContextOptions<InvoiceApiDbContext> options) : base(options)
 	{
-
+		Database.EnsureCreated();
 	}
 
 	public DbSet<User> Users { get; set; }

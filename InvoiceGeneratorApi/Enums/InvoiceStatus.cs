@@ -1,4 +1,4 @@
-﻿namespace InvoiceGeneratorApi.Models;
+﻿namespace InvoiceGeneratorApi.Enums;
 
 public enum InvoiceStatus
 {
@@ -7,5 +7,6 @@ public enum InvoiceStatus
     Received,
     Paid,
     Cancelled,
-    Rejected
+    Rejected,
+    Archieved
 }
