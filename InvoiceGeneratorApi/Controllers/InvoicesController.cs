@@ -10,6 +10,7 @@ using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.Services;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
+using InvoiceGeneratorApi.Models;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -18,17 +19,19 @@ namespace InvoiceGeneratorApi.Controllers
     public class InvoicesController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
+
         private readonly IServiceInvoice _invoiceService;
 
         public InvoicesController(InvoiceApiDbContext context, IServiceInvoice serviceInvoice)
         {
             _context = context;
             _invoiceService = serviceInvoice;
+
         }
 
         // GET: api/InvoiceDTOes
         [HttpGet]
-        public async Task<ActionResult<PaginationDTO<InvoiceDTO>>> GetInvoiceDTO(
+        public async Task<ActionResult<PaginationDTO<InvoiceDTO>>> GetInvoice(
             [FromQuery] PaginationRequest request, string? search, OrderBy? orderBy)
         {
             if (_context.Invoices is null)
@@ -47,7 +50,7 @@ namespace InvoiceGeneratorApi.Controllers
 
         // GET: api/InvoiceDTOes/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<InvoiceDTO>> GetInvoiceDTO(int id)
+        public async Task<ActionResult<InvoiceDTO>> GetInvoice(int id)
         {
             if (_context.Invoices is null)
             {
@@ -61,6 +64,64 @@ namespace InvoiceGeneratorApi.Controllers
                 : Problem("Something went wrong");
         }
 
+        // POST: api/InvoiceDTOes
+        [HttpPost]
+        public async Task<ActionResult<InvoiceDTO>> PostInvoice(InvoiceDTO invoiceDTO)
+        {
+            if (_context.Invoices == null)
+            {
+                return BadRequest();
+            }
+
+            var invoice = await _invoiceService.CreateInvoice(invoiceDTO);
+
+            return invoice is not null
+                ? invoice
+                : Problem("Something went wrong");
+        }
+
+        // PUT: api/InvoiceDTOes/5
+        [HttpPut("invoiceId, customerId, startDate, endDate, comment, status")]
+        public async Task<ActionResult<InvoiceDTO>> PutInvoice(
+        int invoiceId, int?  customerId, DateTimeOffset? startDate,
+        DateTimeOffset? endDate, string? comment, InvoiceStatus? status)
+        {
+            var invoice = await _invoiceService.EditInvoice(
+                invoiceId, customerId, startDate,
+                endDate, comment, status);
+
+            return invoice is not null
+                ? invoice
+                : Problem("Something went wrong");
+        }
+
+        // PUT: api/InvoiceDTOes/5
+        [HttpPut("status")]
+        public async Task<ActionResult<InvoiceDTO>> PutInvoiceStatus(int id, InvoiceStatus status)
+        {
+            var invoice = await _invoiceService.ChangeInvoiceStatus(id, status);
+
+            return invoice is not null
+                ? invoice
+                : Problem("Something went wrong");
+        }
+
+        // DELETE: api/InvoiceDTOes/5
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<InvoiceDTO>> DeleteInvoice(int id)
+        {
+            if (_context.Invoices == null)
+            {
+                return NotFound();
+            }
+
+            var deletedInvoice = await _invoiceService.DeleteInvoice(id);
+
+            return deletedInvoice is not null
+                ? deletedInvoice
+                : Problem("Something went wrong");
+        }
+
         [HttpGet("Generate Invoice PDF")]
         public async Task<IActionResult> GenerateInvoicePDF(int id)
         {
@@ -69,77 +130,8 @@ namespace InvoiceGeneratorApi.Controllers
                 return NotFound();
             }
 
-            (byte[] response, string contentType, string fileName) = await _invoiceService.GenerateInvoicePDF(id);
+            (MemoryStream response, string contentType, string fileName) = await _invoiceService.GenerateInvoicePDF(id);
             return File(response, contentType, fileName);
-        }
-
-        // PUT: api/InvoiceDTOes/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutInvoiceDTO(int id, InvoiceDTO invoiceDTO)
-        {
-            if (id != invoiceDTO.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(invoiceDTO).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!InvoiceDTOExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/InvoiceDTOes
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<InvoiceDTO>> PostInvoiceDTO(InvoiceDTO invoiceDTO)
-        {
-            if (_context.Invoices == null)
-            {
-                return Problem("Entity set 'InvoiceApiDbContext.InvoiceDTO'  is null.");
-            }
-
-            return CreatedAtAction("GetInvoiceDTO", new { id = invoiceDTO.Id }, invoiceDTO);
-        }
-
-        // DELETE: api/InvoiceDTOes/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteInvoiceDTO(int id)
-        {
-            if (_context.Invoices == null)
-            {
-                return NotFound();
-            }
-            var invoiceDTO = await _context.Invoices.FindAsync(id);
-            if (invoiceDTO == null)
-            {
-                return NotFound();
-            }
-
-            _context.Invoices.Remove(invoiceDTO);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool InvoiceDTOExists(int id)
-        {
-            return (_context.Invoices?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace InvoiceGeneratorApi.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,6 +22,7 @@ namespace InvoiceGeneratorApi.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
@@ -72,7 +73,7 @@ namespace InvoiceGeneratorApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InvoicesRow",
+                name: "InvoiceRows",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -85,9 +86,9 @@ namespace InvoiceGeneratorApi.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_InvoicesRow", x => x.Id);
+                    table.PrimaryKey("PK_InvoiceRows", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_InvoicesRow_Invoices_InvoiceId",
+                        name: "FK_InvoiceRows_Invoices_InvoiceId",
                         column: x => x.InvoiceId,
                         principalTable: "Invoices",
                         principalColumn: "Id",
@@ -95,8 +96,8 @@ namespace InvoiceGeneratorApi.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_InvoicesRow_InvoiceId",
-                table: "InvoicesRow",
+                name: "IX_InvoiceRows_InvoiceId",
+                table: "InvoiceRows",
                 column: "InvoiceId");
         }
 
@@ -107,7 +108,7 @@ namespace InvoiceGeneratorApi.Migrations
                 name: "Customers");
 
             migrationBuilder.DropTable(
-                name: "InvoicesRow");
+                name: "InvoiceRows");
 
             migrationBuilder.DropTable(
                 name: "Users");

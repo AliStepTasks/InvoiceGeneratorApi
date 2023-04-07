@@ -22,6 +22,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IServiceInvoice, InvoiceService>();
+builder.Services.AddTransient<InvoiceApiDbContext>();
 
 builder.Services.AddSwaggerGen(c =>
 {

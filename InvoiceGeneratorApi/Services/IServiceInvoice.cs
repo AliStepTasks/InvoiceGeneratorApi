@@ -8,11 +8,13 @@ namespace InvoiceGeneratorApi.Services;
 public interface IServiceInvoice
 {
     Task<InvoiceDTO> CreateInvoice(InvoiceDTO invoiceDTO);
-    Task<InvoiceDTO> EditInvoice(InvoiceDTO invoiceDTO);
+    Task<InvoiceDTO> EditInvoice(
+        int invoiceId, int? customerId, DateTimeOffset? startDate,
+        DateTimeOffset? endDate, string? comment, InvoiceStatus? status);
     Task<InvoiceDTO> ChangeInvoiceStatus(int id, InvoiceStatus invoiceStatus);
-    Task<object> DeleteInvoice(int id);
+    Task<InvoiceDTO> DeleteInvoice(int id);
     Task<InvoiceDTO> GetInvoice(int id);
     Task<PaginationDTO<InvoiceDTO>> GetInvoices(int page, int pageSize, string? search, OrderBy? orderBy);
-    Task<(byte[], string, string)> GenerateInvoicePDF(int id);
+    Task<(MemoryStream, string, string)> GenerateInvoicePDF(int id);
     Task<IActionResult> GenerateInvoiceDOCx(int id);
 }

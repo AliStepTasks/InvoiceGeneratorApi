@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InvoiceGeneratorApi.Migrations
 {
     [DbContext(typeof(InvoiceApiDbContext))]
-    [Migration("20230404131546_SecondMigration")]
-    partial class SecondMigration
+    [Migration("20230406153414_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -136,7 +136,7 @@ namespace InvoiceGeneratorApi.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("InvoicesRow");
+                    b.ToTable("InvoiceRows");
                 });
 
             modelBuilder.Entity("InvoiceGeneratorApi.Models.User", b =>

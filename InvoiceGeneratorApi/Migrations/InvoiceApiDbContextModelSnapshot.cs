@@ -133,7 +133,7 @@ namespace InvoiceGeneratorApi.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("InvoicesRow");
+                    b.ToTable("InvoiceRows");
                 });
 
             modelBuilder.Entity("InvoiceGeneratorApi.Models.User", b =>

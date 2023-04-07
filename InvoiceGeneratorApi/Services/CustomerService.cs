@@ -18,7 +18,7 @@ public class CustomerService : ICustomerService
     }
     public async Task<CustomerDTO> AddCustomer(CustomerDTO customerDTO)
     {
-        var customer = CustomerDtoToCustomer(customerDTO);
+        var customer = DtoAndReverseConverter.CustomerDtoToCustomer(customerDTO);
 
         customer.CreatedAt = DateTimeOffset.Now;
         customer.UpdatedAt = DateTimeOffset.Now;
@@ -29,7 +29,7 @@ public class CustomerService : ICustomerService
         customer = _context.Customers.Add(customer).Entity;
         await _context.SaveChangesAsync();
 
-        return CustomerToCustomerDto(customer);
+        return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public class CustomerService : ICustomerService
         customer = _context.Customers.Update(customer).Entity;
         await _context.SaveChangesAsync();
 
-        return CustomerToCustomerDto(customer);
+        return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
     /// <summary>
@@ -114,7 +114,7 @@ public class CustomerService : ICustomerService
         customer = _context.Customers.Update(customer).Entity;
         await _context.SaveChangesAsync();
 
-        return CustomerToCustomerDto(customer);
+        return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
     /// <summary>
@@ -131,7 +131,7 @@ public class CustomerService : ICustomerService
             return null;
         }
 
-        return CustomerToCustomerDto(customer);
+        return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ public class CustomerService : ICustomerService
                 .Take(pageSize)
                 .ToListAsync();
 
-        var customerDtoList = customerList.Select(c => CustomerToCustomerDto(c));
+        var customerDtoList = customerList.Select(c => DtoAndReverseConverter.CustomerToCustomerDto(c));
 
         var paginatedList = new PaginationDTO<CustomerDTO>
         (
@@ -175,45 +175,5 @@ public class CustomerService : ICustomerService
         );
 
         return paginatedList;
-    }
-
-    /// <summary>
-    /// Converts CustomerDTO to Customer
-    /// </summary>
-    /// <param name="customerDto"></param>
-    /// <returns></returns>
-    private Customer CustomerDtoToCustomer(CustomerDTO customerDto)
-    {
-        var customer = new Customer
-        {
-            Id = customerDto.Id,
-            Name = customerDto.Name,
-            Address = customerDto.Address,
-            Email = customerDto.Email,
-            Password = customerDto.Password,
-            PhoneNumber = customerDto.PhoneNumber,
-            Status = customerDto.Status,
-        };
-        return customer;
-    }
-
-    /// <summary>
-    /// Converts Customer to CustomerDTO
-    /// </summary>
-    /// <param name="customer"></param>
-    /// <returns></returns>
-    private CustomerDTO CustomerToCustomerDto(Customer customer)
-    {
-        var customerDto = new CustomerDTO
-        {
-            Id = customer.Id,
-            Name = customer.Name,
-            Address = customer.Address,
-            Email = customer.Email,
-            Password = customer.Password,
-            PhoneNumber = customer.PhoneNumber,
-            Status = customer.Status
-        };
-        return customerDto;
     }
 }
