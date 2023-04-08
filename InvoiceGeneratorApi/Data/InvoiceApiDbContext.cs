@@ -9,9 +9,8 @@ public class InvoiceApiDbContext : DbContext
 {
 	public InvoiceApiDbContext(DbContextOptions<InvoiceApiDbContext> options) : base(options)
 	{
-
+		Database.EnsureCreated();
 	}
-
 
     public DbSet<User> Users { get; set; }
 	public DbSet<Customer> Customers { get; set; }

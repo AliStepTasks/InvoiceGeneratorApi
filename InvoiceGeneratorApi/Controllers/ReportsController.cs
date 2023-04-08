@@ -20,22 +20,41 @@ namespace InvoiceGeneratorApi.Controllers
             _reportService = reportService;
         }
 
-        // GET api/<ReportsController>/5
-        [HttpGet("{id}")]
+
+        [HttpGet("Customer Report")]
         public async Task<IActionResult> DownloadCustomerReport()
         {
             // Get the list of customers from the database
             var customers = _context.Customers
                 .Select(c => DtoAndReverseConverter.CustomerToCustomerDto(c))
                 .ToList();
+            var invoices = _context.Invoices.ToList();
 
             // Generate the customer report
-            var report = await _reportService.GenerateCustomerReport(customers);
+            var report = await _reportService.GenerateCustomerReport(customers, invoices);
 
             // Return the report as a downloadable Excel file
             return File(report,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "customer_" + Guid.NewGuid().ToString() + "_report.xlsx");
+                "customer_report.xlsx");
+        }
+
+        [HttpGet("Invoice Report")]
+        public async Task<IActionResult> DownloadInvoiceReport()
+        {
+            // Get the list of invoices from the database
+            var invoices = _context.Invoices
+                .Select(i => DtoAndReverseConverter.InvoiceToInvoiceDto(i))
+                .ToList();
+            var customers = _context.Customers.ToList();
+
+            // Generate the customer report
+            var report = await _reportService.GenerateInvoiceReport(invoices, customers);
+
+            // Return the report as a downloadable Excel file
+            return File(report,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "invoice_report.xlsx");
         }
     }
 }
