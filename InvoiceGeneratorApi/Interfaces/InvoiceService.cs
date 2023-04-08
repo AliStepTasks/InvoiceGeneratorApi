@@ -4,11 +4,12 @@ using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Models;
+using InvoiceGeneratorApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 
-namespace InvoiceGeneratorApi.Services;
+namespace InvoiceGeneratorApi.Interfaces;
 
 public class InvoiceService : IServiceInvoice
 {

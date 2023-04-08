@@ -8,8 +8,24 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Text.Json.Serialization;
 using InvoiceGeneratorApi.Filters;
 using InvoiceGeneratorApi.Services;
+using FluentValidation.AspNetCore;
+using InvoiceGeneratorApi.DTO;
+using FluentValidation;
+using InvoiceGeneratorApi.Validators;
+using InvoiceGeneratorApi.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+#pragma warning disable CS0618 // Type or member is obsolete
+builder.Services
+    .AddControllers()
+    .AddFluentValidation(x =>
+    {
+        x.ImplicitlyValidateChildProperties = true!;
+        x.RegisterValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+    });
+#pragma warning restore CS0618 // Type or member is obsolete
 
 // Add services to the container.
 
@@ -23,7 +39,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServiceInvoice, InvoiceService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddTransient<InvoiceApiDbContext>();
+
+builder.Services.AddSwagger();
 
 builder.Services.AddSwaggerGen(c =>
 {

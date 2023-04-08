@@ -3,7 +3,7 @@ using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InvoiceGeneratorApi.Services;
+namespace InvoiceGeneratorApi.Interfaces;
 
 public interface IServiceInvoice
 {

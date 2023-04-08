@@ -7,18 +7,29 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InvoiceGeneratorApi.Controllers
 {
+    /// <summary>
+    /// Controller responsible for seeding the database with test data. Provides methods for generating customers, invoices, and users.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class DataSeedController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
 
+        /// <summary>
+        /// Initializes a new instance of the DataSeedController class with the specified database context.
+        /// </summary>
+        /// <param name="context">The database context to use for seeding data.</param>
         public DataSeedController(InvoiceApiDbContext context)
         {
             _context = context;
         }
 
-
+        /// <summary>
+        /// Generates the specified number of customers and adds them to the database.
+        /// </summary>
+        /// <param name="numberOfCustomers">The number of customers to generate.</param>
+        /// <returns>An IEnumerable of the generated customers.</returns>
         // GET: api/<DataSeedController>/Customers
         [HttpGet("Generate Customers")]
         public async Task<IEnumerable<Customer>> GenerateCustomers(int numberOfCustomers)
@@ -32,11 +43,18 @@ namespace InvoiceGeneratorApi.Controllers
             return customers;
         }
 
+        /// <summary>
+        /// Generates the specified number of invoices with the specified number of rows per invoice, and saves them to the database.
+        /// </summary>
+        /// <param name="numberOfInvoices">The number of invoices to generate.</param>
+        /// <param name="numberOfRows">The number of rows per invoice to generate.</param>
+        /// <returns>The generated invoices.</returns>
         // GET api/<DataSeedController>/Invoices
         [HttpGet("Generate Invoices")]
         public async Task<IEnumerable<Invoice>> GenerateInvoices(int numberOfInvoices, int numberOfRows)
         {
-            var invoices = SeedDb.InvoiceSeed(numberOfInvoices, numberOfRows);
+            int[] customersId = _context.Customers.Select(c => c.Id).ToArray();
+            var invoices = SeedDb.InvoiceSeed(numberOfInvoices, numberOfRows, customersId);
             foreach (var inv in invoices)
             {
                 _context.Invoices.Add(inv);
@@ -59,6 +77,11 @@ namespace InvoiceGeneratorApi.Controllers
             return invoices;
         }
 
+        /// <summary>
+        /// Generates a specified number of new users and adds them to the database.
+        /// </summary>
+        /// <param name="numberOfUsers">The number of users to generate.</param>
+        /// <returns>A list of the newly generated users.</returns>
         // GET api/<DataSeedController>/Users
         [HttpGet("Generate Users")]
         public async Task<IEnumerable<User>> GenerateUsers(int numberOfUsers)

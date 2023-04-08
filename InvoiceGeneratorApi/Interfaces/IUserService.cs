@@ -1,6 +1,6 @@
 ﻿using InvoiceGeneratorApi.DTO;
 
-namespace InvoiceGeneratorApi.Services;
+namespace InvoiceGeneratorApi.Interfaces;
 
 public interface IUserService
 {

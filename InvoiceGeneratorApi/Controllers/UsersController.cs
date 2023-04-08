@@ -7,19 +7,27 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.Models;
-using InvoiceGeneratorApi.Services;
 using InvoiceGeneratorApi.DTO;
 using Microsoft.Build.Framework;
+using InvoiceGeneratorApi.Interfaces;
 
 namespace InvoiceGeneratorApi.Controllers
 {
+    /// <summary>
+    /// UsersController is a controller that handles HTTP requests related to users.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
-        private readonly IUserService _userService; 
+        private readonly IUserService _userService;
 
+        /// <summary>
+        /// Initializes a new instance of the UsersController class.
+        /// </summary>
+        /// <param name="context">The InvoiceApiDbContext used to access the database.</param>
+        /// <param name="userService">The IUserService used to perform operations on users.</param>
         public UsersController(InvoiceApiDbContext context, IUserService userService)
         {
             _context = context;
@@ -27,13 +35,13 @@ namespace InvoiceGeneratorApi.Controllers
         }
 
         /// <summary>
-        /// Changes user's password with confirmation.
+        /// Change a user's password.
         /// </summary>
-        /// <param name="Email"></param>
-        /// <param name="OldPassword"></param>
-        /// <param name="NewPassword"></param>
-        /// <param name="NewPasswordConfirmation"></param>
-        /// <returns></returns>
+        /// <param name="Email">The email of the user whose password is to be changed.</param>
+        /// <param name="OldPassword">The old password of the user.</param>
+        /// <param name="NewPassword">The new password to set for the user.</param>
+        /// <param name="NewPasswordConfirmation">Confirmation of the new password.</param>
+        /// <returns>The updated user information as a UserDTO.</returns>
         // PUT: api/Users/Email
         [HttpPut("Email, OldPassword, NewPassword, NewPasswordConfirmation")]
         public async Task<ActionResult<UserDTO>> ChangePassword(
@@ -57,17 +65,16 @@ namespace InvoiceGeneratorApi.Controllers
         }
 
         /// <summary>
-        /// Edit user's data with password confirmation
+        /// Edit a user's information.
         /// </summary>
-        /// <param name="Email"></param>
-        /// <param name="Name"></param>
-        /// <param name="Address"></param>
-        /// <param name="PhoneNumber"></param>
-        /// <param name="Password"></param>
-        /// <param name="PasswordConfirmation"></param>
-        /// <returns></returns>
+        /// <param name="Email">The email of the user whose information is to be edited.</param>
+        /// <param name="Name">The name to set for the user.</param>
+        /// <param name="Address">The address to set for the user.</param>
+        /// <param name="PhoneNumber">The phone number to set for the user.</param>
+        /// <param name="Password">The user's current password.</param>
+        /// <param name="PasswordConfirmation">Confirmation of the user's current password.</param>
+        /// <returns>The updated user information as a UserDTO.</returns>
         // PUT: api/Users/Email
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("Email, Name, Address, PhoneNumber, Password, PasswordConfirmation")]
         public async Task<ActionResult<UserDTO>> EditUser(
             string Email, string? Name,
@@ -86,8 +93,12 @@ namespace InvoiceGeneratorApi.Controllers
                 : Problem("Something went wrong");
         }
 
+        /// <summary>
+        /// Add a new user to the database.
+        /// </summary>
+        /// <param name="user">The user to add to the database.</param>
+        /// <returns>The created user.</returns>
         // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(User user)
         {
@@ -102,11 +113,11 @@ namespace InvoiceGeneratorApi.Controllers
         }
 
         /// <summary>
-        /// Delete user according to Email and Password
+        /// Delete a user from the database.
         /// </summary>
-        /// <param name="Email"></param>
-        /// <param name="PasswordConfirmation"></param>
-        /// <returns></returns>
+        /// <param name="Email">The email of the user to delete.</param>
+        /// <param name="PasswordConfirmation">Confirmation of the user's password.</param>
+        /// <returns>The deleted user information as a UserDTO.</returns>
         // DELETE: api/Users/Email
         [HttpDelete("Email, PasswordConfirmation")]
         public async Task<ActionResult<UserDTO>> DeleteUser(string Email, string PasswordConfirmation)

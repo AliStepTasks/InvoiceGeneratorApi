@@ -4,7 +4,7 @@ using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InvoiceGeneratorApi.Services;
+namespace InvoiceGeneratorApi.Interfaces;
 
 public interface ICustomerService
 {

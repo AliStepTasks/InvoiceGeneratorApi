@@ -2,6 +2,7 @@
 using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
+using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -32,12 +33,6 @@ public class CustomerService : ICustomerService
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
-    /// <summary>
-    /// Find customer by Email and then change the status
-    /// </summary>
-    /// <param name="Email"></param>
-    /// <param name="Status"></param>
-    /// <returns></returns>
     public async Task<CustomerDTO> ChangeCustomerStatus(string Email, CustomerStatus Status)
     {
         var customer = _context.Customers.FirstOrDefault(c => c.Email == Email);
@@ -54,11 +49,6 @@ public class CustomerService : ICustomerService
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
-    /// <summary>
-    /// Delete customer according to Email
-    /// </summary>
-    /// <param name="Email"></param>
-    /// <returns></returns>
     public async Task<object> DeleteCustomer(string Email)
     {
         var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == Email);
@@ -81,17 +71,6 @@ public class CustomerService : ICustomerService
         return true;
     }
 
-    /// <summary>
-    /// Edit customer data with password confirmation
-    /// </summary>
-    /// <param name="Email"></param>
-    /// <param name="Name"></param>
-    /// <param name="Address"></param>
-    /// <param name="PhoneNumber"></param>
-    /// <param name="Password"></param>
-    /// <param name="PasswordConfirmation"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public async Task<CustomerDTO> EditCustomer(
         string Email, string? Name,
         string? Address, string? PhoneNumber, string Password)
@@ -117,11 +96,6 @@ public class CustomerService : ICustomerService
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
-    /// <summary>
-    /// Get customer according to Email
-    /// </summary>
-    /// <param name="Email"></param>
-    /// <returns></returns>
     public async Task<CustomerDTO> GetCustomer(string Email)
     {
         var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == Email);
@@ -134,11 +108,6 @@ public class CustomerService : ICustomerService
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
-    /// <summary>
-    /// Get all customers
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
     public async Task<PaginationDTO<CustomerDTO>> GetCustomers(int page, int pageSize, string? search, OrderBy? orderBy)
     {
         IQueryable<Customer> query = _context.Customers;

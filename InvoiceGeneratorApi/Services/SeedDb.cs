@@ -42,7 +42,7 @@ public static class SeedDb
     /// <param name="numberOfInvoices"></param>
     /// <param name="numberOfRows"></param>
     /// <returns></returns>
-    public static IEnumerable<Invoice> InvoiceSeed(int numberOfInvoices, int numberOfRows)
+    public static IEnumerable<Invoice> InvoiceSeed(int numberOfInvoices, int numberOfRows, int[] customersId)
     {
         var invoiceList = new List<Invoice>();
         for (int i = 0; i < numberOfInvoices; i++)
@@ -51,17 +51,16 @@ public static class SeedDb
             var rows = new List<InvoiceRowDTO>();
             var invoice = new Invoice
             {
-                CustomerId = faker.Random.Int(1, 100),
+                CustomerId = faker.PickRandom(customersId),
                 StartDate = faker.Date.RecentOffset(),
                 EndDate = faker.Date.FutureOffset(),
-                TotalSum = Decimal.Parse(faker.Commerce.Price()),
+                TotalSum = 0,
                 Comment = faker.Commerce.ProductDescription(),
                 Status = faker.PickRandom<InvoiceStatus>(),
                 CreatedAt = faker.Date.PastOffset(),
                 UpdatedAt = faker.Date.RecentOffset(),
                 DeletedAt = faker.Date.FutureOffset()
             };
-
             var rowCount = faker.Random.Number(numberOfRows);
 
             for (int j = 0; j < rowCount; j++)
@@ -73,14 +72,12 @@ public static class SeedDb
                     Amount = Decimal.Parse(faker.Commerce.Price())
                 };
                 row.Sum = row.Quantity * row.Amount;
+                invoice.TotalSum += row.Sum;
                 rows.Add(row);
             }
-
             invoice.Rows = rows.ToArray();
-
             invoiceList.Add(invoice);
         }
-
         return invoiceList;
     }
 

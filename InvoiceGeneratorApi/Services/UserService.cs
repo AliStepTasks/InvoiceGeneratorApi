@@ -1,5 +1,6 @@
 ﻿using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO;
+using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using Microsoft.EntityFrameworkCore;
 
