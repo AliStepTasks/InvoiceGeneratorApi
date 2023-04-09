@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InvoiceGeneratorApi.Controllers
 {
+    /// <summary>
+    /// Controller for generating reports.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class ReportsController : ControllerBase
@@ -14,13 +17,21 @@ namespace InvoiceGeneratorApi.Controllers
         private readonly InvoiceApiDbContext _context;
         private readonly IReportService _reportService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReportsController"/> class.
+        /// </summary>
+        /// <param name="context">The database context.</param>
+        /// <param name="reportService">The report service.</param>
         public ReportsController(InvoiceApiDbContext context, IReportService reportService)
         {
             _context = context;
             _reportService = reportService;
         }
 
-
+        /// <summary>
+        /// Downloads a customer report as an Excel file.
+        /// </summary>
+        /// <returns>The generated customer report as a downloadable Excel file.</returns>
         [HttpGet("Customer Report")]
         public async Task<IActionResult> DownloadCustomerReport()
         {
@@ -39,6 +50,32 @@ namespace InvoiceGeneratorApi.Controllers
                 "customer_report.xlsx");
         }
 
+        /// <summary>
+        /// Downloads a report of work done as an Excel file.
+        /// </summary>
+        /// <returns>The generated report of work done as a downloadable Excel file.</returns>
+        [HttpGet("Work Done Report")]
+        public async Task<IActionResult> DownloadDoneWorkReport()
+        {
+            // Get the list of invoices from the database
+            var invoices = _context.Invoices
+                .Select(i => DtoAndReverseConverter.InvoiceToInvoiceDto(i))
+                .ToList();
+            var customers = _context.Customers.ToList();
+
+            // Generate the customer report
+            var report = await _reportService.GenerateDoneWorkReport(invoices, customers);
+
+            // Return the report as a downloadable Excel file
+            return File(report,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "doneWork_report.xlsx");
+        }
+
+        /// <summary>
+        /// Downloads an invoice report as an Excel file.
+        /// </summary>
+        /// <returns>The generated invoice report as a downloadable Excel file.</returns>
         [HttpGet("Invoice Report")]
         public async Task<IActionResult> DownloadInvoiceReport()
         {

@@ -1,16 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
 using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
-using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.Interfaces;
+using iTextSharp.text.pdf;
+using iTextSharp.tool.xml;
+using iTextSharp.tool.xml.pipeline.css;
+using System.Text;
+using iTextSharp.text;
+using iTextSharp.tool.xml.css;
+using iTextSharp.tool.xml.html;
+using iTextSharp.tool.xml.parser;
+using iTextSharp.tool.xml.pipeline.end;
+using iTextSharp.tool.xml.pipeline.html;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -173,16 +176,76 @@ namespace InvoiceGeneratorApi.Controllers
         /// </summary>
         /// <param name="id">The ID of the invoice to generate a PDF for.</param>
         /// <returns>A file containing the generated PDF.</returns>
+        //[HttpGet("Generate Invoice PDF")]
+        //public async Task<IActionResult> GenerateInvoicePDF(int id)
+        //{
+        //    if (_context.Invoices is null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    (MemoryStream response, string contentType, string fileName) = await _invoiceService.GenerateInvoicePDF(id);
+        //    return File(response, contentType, fileName);
+        //}
+
         [HttpGet("Generate Invoice PDF")]
         public async Task<IActionResult> GenerateInvoicePDF(int id)
         {
-            if (_context.Invoices is null)
-            {
-                return NotFound();
-            }
+            var invoice = await _context.Invoices.FindAsync(id);
+            var customer = await _context.Customers.FindAsync(invoice.CustomerId);
 
-            (MemoryStream response, string contentType, string fileName) = await _invoiceService.GenerateInvoicePDF(id);
-            return File(response, contentType, fileName);
+            // Load the HTML template for the invoice
+            var html = System.IO.File.ReadAllText("invoice.html");
+
+            // Replace placeholders in the HTML template with actual invoice data
+            html = html.Replace("{CustomerName}", customer.Name);
+            html = html.Replace("{InvoiceNumber}", Guid.NewGuid().ToString());
+            // ...
+
+            // Create a new PDF document
+            var document = new Document(PageSize.A4, 50, 50, 25, 25);
+
+            // Create a new MemoryStream to store the PDF document
+            var stream = new MemoryStream();
+
+            // Create a new PdfWriter to write the PDF document to the MemoryStream
+            var writer = PdfWriter.GetInstance(document, stream);
+
+            // Create a new CSSResolver to load the styles from a file
+            var resolver = new StyleAttrCSSResolver();
+            var cssFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "styles.css");
+            var cssStream = new FileStream(cssFile, FileMode.Open);
+            var cssReader = new StreamReader(cssStream);
+            var css = cssReader.ReadToEnd();
+            resolver.AddCss(css);
+
+            // Open the PDF document
+            document.Open();
+
+            // Parse the HTML template and add it to the PDF document
+            var parser = new HtmlPipelineContext(null);
+            parser.SetTagFactory(Tags.GetHtmlTagProcessorFactory());
+            parser.SetCssResolver(resolver);
+            var pipeline = new CssResolverPipeline(resolver, new HtmlPipeline(parser, new PdfWriterPipeline(document, writer)));
+            var worker = new XMLWorker(pipeline, true);
+            var xmlParser = new XMLParser(true, worker);
+            xmlParser.Parse(new StringReader(html));
+
+            // Close the PDF document
+            document.Close();
+
+            // Set the content type and filename for the PDF document
+            var contentType = "application/pdf";
+            var fileName = "invoice.pdf";
+
+            // Write the PDF document to a file stream
+            var fileStream = new FileStreamResult(new MemoryStream(stream.ToArray()), contentType);
+
+            // Set the file download name
+            fileStream.FileDownloadName = fileName;
+
+            // Return the file stream as the result of the action
+            return fileStream;
         }
     }
 }
