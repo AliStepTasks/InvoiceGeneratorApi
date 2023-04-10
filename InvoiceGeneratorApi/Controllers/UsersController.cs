@@ -10,6 +10,9 @@ using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.DTO;
 using Microsoft.Build.Framework;
 using InvoiceGeneratorApi.Interfaces;
+using InvoiceGeneratorApi.DTO.Auth;
+using Microsoft.AspNetCore.Identity;
+using InvoiceGeneratorApi.Auth;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -22,16 +25,22 @@ namespace InvoiceGeneratorApi.Controllers
     {
         private readonly InvoiceApiDbContext _context;
         private readonly IUserService _userService;
+        private readonly IJwtService _jwtService;
+        //private readonly UserManager<User> _userManager;
+        //private readonly SignInManager<User> _signInManager;
 
         /// <summary>
         /// Initializes a new instance of the UsersController class.
         /// </summary>
         /// <param name="context">The InvoiceApiDbContext used to access the database.</param>
         /// <param name="userService">The IUserService used to perform operations on users.</param>
-        public UsersController(InvoiceApiDbContext context, IUserService userService)
+        public UsersController(InvoiceApiDbContext context, IUserService userService, IJwtService jwtService/*, UserManager<User> userManager, SignInManager<User> signInManager*/)
         {
             _context = context;
             _userService = userService;
+            _jwtService = jwtService;
+            //_userManager = userManager;
+            //_signInManager = signInManager;
         }
 
         /// <summary>
@@ -52,7 +61,7 @@ namespace InvoiceGeneratorApi.Controllers
             {
                 return NotFound();
             }
-            if(NewPassword != NewPasswordConfirmation)
+            if (NewPassword != NewPasswordConfirmation)
             {
                 return Problem("Passwords don't match.");
             }
@@ -94,22 +103,56 @@ namespace InvoiceGeneratorApi.Controllers
         }
 
         /// <summary>
-        /// Add a new user to the database.
+        /// Registers a new user with the specified details and returns a security token if successful.
         /// </summary>
-        /// <param name="user">The user to add to the database.</param>
-        /// <returns>The created user.</returns>
+        /// <param name="userRequest">The details of the user to register.</param>
+        /// <returns>A security token if registration is successful, or a bad request status code otherwise.</returns>
         // POST: api/Users
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        public async Task<ActionResult<string>> RegisterUser([FromBody] UserRegisterRequest userRequest)
         {
-          if (_context.Users == null)
-          {
-              return Problem("Entity set 'InvoiceApiDbContext.Users'  is null.");
-          }
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            if (userRequest is null)
+            {
+                return BadRequest();
+            }
 
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+            var user = await _userService.RegisterUser(userRequest);
+            if(user is null)
+            {
+                return Problem("Something went wrong");
+            }
+            var token = _jwtService.GenerateSecurityToken(userRequest.Email);
+
+            return token;
+        }
+
+        /// <summary>
+        /// Logs in a user with the specified email and password.
+        /// </summary>
+        /// <param name="email">The email of the user.</param>
+        /// <param name="password">The password of the user.</param>
+        /// <returns>The security token for the logged in user.</returns>
+        /// <response code="200">Returns the security token for the logged in user.</response>
+        /// <response code="400">If either the email or password is null.</response>
+        /// <response code="500">If an error occurs while logging in the user.</response>
+        [HttpGet("LogIn")]
+        public async Task<ActionResult<string>> LogInUser(string email, string password)
+        {
+            if (email is null || password is null)
+            {
+                return BadRequest();
+            }
+
+            var user = await _userService.LogInUser(email, password);
+
+            if (user is null)
+            {
+                return Problem("Something went wrong");
+            }
+
+            var token = _jwtService.GenerateSecurityToken(email);
+
+            return token;
         }
 
         /// <summary>

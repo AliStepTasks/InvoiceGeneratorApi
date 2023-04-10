@@ -1,6 +1,7 @@
 ﻿using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -12,6 +13,7 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DataSeedController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;

@@ -11,6 +11,7 @@ using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -19,6 +20,7 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CustomersController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;

@@ -1,5 +1,7 @@
-﻿using InvoiceGeneratorApi.Data;
+﻿using InvoiceGeneratorApi.Auth;
+using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO;
+using InvoiceGeneratorApi.DTO.Auth;
 using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +10,7 @@ namespace InvoiceGeneratorApi.Services;
 
 public class UserService : IUserService
 {
-    private InvoiceApiDbContext _context;
+    private readonly InvoiceApiDbContext _context;
 
     public UserService(InvoiceApiDbContext context)
     {
@@ -72,13 +74,42 @@ public class UserService : IUserService
         return DtoAndReverseConverter.UserToUserDto(user);
     }
 
-    public async Task<UserDTO> LogInUser(UserDTO userDTO)
+    public async Task<UserDTO> LogInUser(string email, string password)
     {
-        throw new NotImplementedException();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var isValidPassword = BCrypt.Net.BCrypt.Verify(password, user.Password);
+
+        if (user is null || !isValidPassword)
+        {
+            return null;
+        }
+
+        return DtoAndReverseConverter.UserToUserDto(user);
     }
 
-    public async Task<UserDTO> RegisterUser(UserDTO userDTO)
+    public async Task<UserDTO> RegisterUser(UserRegisterRequest userRequest)
     {
-        throw new NotImplementedException();
+        var isExistUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userRequest.Email);
+
+        if (isExistUser is not null)
+        {
+            return null;
+        }
+
+        var user = new User
+        {
+            Name = userRequest.Name,
+            Email = userRequest.Email,
+            Address = userRequest.Address,
+            PhoneNumber = userRequest.PhoneNumber,
+            Password = BCrypt.Net.BCrypt.HashPassword(userRequest.Password),
+            CreatedAt = DateTimeOffset.Now,
+            UpdatedAt = DateTimeOffset.Now
+        };
+
+        user = _context.Users.Add(user).Entity;
+        await _context.SaveChangesAsync();
+
+        return DtoAndReverseConverter.UserToUserDto(user);
     }
 }

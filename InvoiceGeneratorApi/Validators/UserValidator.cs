@@ -1,9 +1,10 @@
 ﻿using FluentValidation;
 using InvoiceGeneratorApi.DTO;
+using InvoiceGeneratorApi.DTO.Auth;
 
 namespace InvoiceGeneratorApi.Validators;
 
-public class UserValidator : AbstractValidator<UserDTO>
+public class UserValidator : AbstractValidator<UserRegisterRequest>
 {
     public UserValidator()
     {

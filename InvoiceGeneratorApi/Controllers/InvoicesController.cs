@@ -4,17 +4,8 @@ using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
-using Syncfusion.HtmlConverter;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using System.Drawing.Imaging;
-using System.Drawing.Printing;
-using DocumentFormat.OpenXml.Drawing;
-using InvoiceGeneratorApi.Models;
-using iTextSharp.text.pdf;
-using Rotativa.AspNetCore;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Authorization;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -23,13 +14,11 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class InvoicesController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
         private readonly IServiceInvoice _invoiceService;
-        private readonly IHtmlConverterSettings _htmlConverter;
-        private readonly ITempDataProvider _tempDataProvider;
-        private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InvoicesController"/> class with the specified <paramref name="context"/> and <paramref name="serviceInvoice"/> parameters.
