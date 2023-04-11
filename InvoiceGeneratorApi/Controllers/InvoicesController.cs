@@ -6,6 +6,14 @@ using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Authorization;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using InvoiceGeneratorApi.PdfRelated;
+using System.Diagnostics;
+using InvoiceGeneratorApi.PdfRelated.Models;
+using InvoiceGeneratorApi.Services;
+using Bogus;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -14,7 +22,6 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class InvoicesController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
@@ -113,7 +120,7 @@ namespace InvoiceGeneratorApi.Controllers
         // PUT: api/InvoiceDTOes/5
         [HttpPut("invoiceId, customerId, startDate, endDate, comment, status")]
         public async Task<ActionResult<InvoiceDTO>> PutInvoice(
-        int invoiceId, int?  customerId, DateTimeOffset? startDate,
+        int invoiceId, int? customerId, DateTimeOffset? startDate,
         DateTimeOffset? endDate, string? comment, InvoiceStatus? status)
         {
             var invoice = await _invoiceService.EditInvoice(
@@ -168,79 +175,44 @@ namespace InvoiceGeneratorApi.Controllers
         /// </summary>
         /// <param name="id">The ID of the invoice to generate a PDF for.</param>
         /// <returns>A file containing the generated PDF.</returns>
-        //[HttpGet("Generate Invoice PDF")]
-        //public async Task<IActionResult> GenerateInvoicePDF(int id)
-        //{
-        //    if (_context.Invoices is null)
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpGet("Generate Invoice PDF")]
+        public async Task<IActionResult> GenerateInvoicePDF(int id)
+        {
+            var invoice = await _context.Invoices.FindAsync(id);
+            var customer = _context.Customers.FirstOrDefault(x => x.Id == invoice.CustomerId);
+            var filePath = "invoice.pdf";
 
-        //    (MemoryStream response, string contentType, string fileName) = await _invoiceService.GenerateInvoicePDF(id);
-        //    return File(response, contentType, fileName);
-        ////}
+            var faker = new Faker();
+            var model = new InvoiceModel
+            {
+                InvoiceDto = DtoAndReverseConverter.InvoiceToInvoiceDto(invoice),
+                InvoiceNumber = Guid.NewGuid().ToString(),
+                DueDate = invoice.CreatedAt.AddDays(14).DateTime,
+                SellerAddress = new Address
+                {
+                    CompanyName = "Schofrie LLC",
+                    Street = faker.Address.StreetAddress(),
+                    City = faker.Address.City(),
+                    State = faker.Address.State(),
+                    Email = "aguliyev45@gmail.com",
+                    Phone = "+994 (050) 499 97 44"
+                },
+                CustomerAddress = new Address
+                {
+                    CompanyName = null,
+                    Street = customer.Address,
+                    City = faker.Address.City(),
+                    State = faker.Address.State(),
+                    Email = customer.Email,
+                    Phone = customer.PhoneNumber
+                },
+            };
 
+            var document = new InvoiceDocument(model);
 
-        //[HttpGet("Something")]
-        //// Action to generate invoice PDF file
-        //public async Task<IActionResult> GenerateInvoicePdf(int invoiceId)
-        //{
-        //    // Render view to string
-        //    var viewData = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
-        //    {
-        //        Model = new MyViewModel() // Replace with your own view model
-        //    };
-        //    var htmlContent = await this.ViewToStringAsync("MyView", viewData);
+            var byteFile = document.GenerateXps();
 
-        //    // Convert HTML to PDF
-        //    var converter = _htmlConverter.Convert(htmlContent, _tempDataProvider, _serviceProvider);
-        //    var pdfData = converter.Save();
-
-        //    // Return PDF file as a file download
-        //    return File(pdfData, "application/pdf", "my-pdf-file.pdf");
-        //}
-
-
-
-
-    //[HttpGet("Generate Invoice PDF")]
-    //public async Task<IActionResult> GenerateInvoicePDF(int id)
-    //{
-    //    var invoice = await _context.Invoices.FindAsync(id);
-    //    var customer = await _context.Customers.FindAsync(invoice.CustomerId);
-
-    //    // Load the HTML template for the invoice
-    //    var html = System.IO.File.ReadAllText("invoice.html");
-
-    //    // Replace placeholders in the HTML template with actual invoice data
-    //    html = html.Replace("{CustomerName}", customer.Name);
-    //    html = html.Replace("{InvoiceNumber}", Guid.NewGuid().ToString());
-    //    // ...
-
-    //    // Create a new PDF document
-    //    var document = new Document(PageSize.A4, 50, 50, 25, 25);
-
-    //    // Create a new MemoryStream to store the PDF document
-    //    var stream = new MemoryStream();
-
-    //    // Create a new PdfWriter to write the PDF document to the MemoryStream
-    //    var writer = PdfWriter.GetInstance(document, stream);
-
-    //    // Close the PDF document
-    //    document.Close();
-
-    //    // Set the content type and filename for the PDF document
-    //    var contentType = "application/pdf";
-    //    var fileName = "invoice.pdf";
-
-    //    // Write the PDF document to a file stream
-    //    var fileStream = new FileStreamResult(new MemoryStream(stream.ToArray()), contentType);
-
-    //    // Set the file download name
-    //    fileStream.FileDownloadName = fileName;
-
-    //    // Return the file stream as the result of the action
-    //    return fileStream;
-    //}
-}
+            return File(byteFile, "application/pdf", filePath);
+        }
+    }
 }
