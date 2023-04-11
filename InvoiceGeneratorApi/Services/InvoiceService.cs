@@ -4,9 +4,9 @@ using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
+using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.PdfRelated.Models;
-using InvoiceGeneratorApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Utilities;
@@ -14,7 +14,7 @@ using QuestPDF.Fluent;
 using System;
 using Xceed.Words.NET;
 
-namespace InvoiceGeneratorApi.Interfaces;
+namespace InvoiceGeneratorApi.Services;
 
 public class InvoiceService : IServiceInvoice
 {
@@ -208,13 +208,29 @@ public class InvoiceService : IServiceInvoice
     public async Task<byte[]> GenerateInvoicePDF(int id)
     {
         var invoice = await _context.Invoices.FindAsync(id);
-        var customer = _context.Customers.FirstOrDefault(x => x.Id == invoice.CustomerId);
+        if(invoice is null)
+        {
+            return null;
+        }
+        invoice.Rows = _context.InvoiceRows
+            .Where(x => x.InvoiceId == invoice.Id)
+            .Select(x => DtoAndReverseConverter.InvoiceRowToInvoiceRowDto(x))
+            .ToArray();
+
+        var customer = await _context.Customers.FindAsync(invoice.CustomerId);
+        if(customer is null)
+        {
+            customer.Name = "Unknown Customer";
+            customer.Address = "Unknown Adress";
+            customer.Email = "Unknown Email";
+            customer.PhoneNumber = "Unknown Number";
+        }
 
         var faker = new Faker();
         var model = new InvoiceModel
         {
             InvoiceDto = DtoAndReverseConverter.InvoiceToInvoiceDto(invoice),
-            InvoiceNumber = Guid.NewGuid().ToString(),
+            InvoiceNumber = invoice.Id.ToString(),
             DueDate = invoice.CreatedAt.AddDays(14).DateTime,
             SellerAddress = new PdfRelated.Models.Address
             {
@@ -238,7 +254,7 @@ public class InvoiceService : IServiceInvoice
 
         var document = new InvoiceDocument(model);
 
-        var byteFile = document.GenerateXps();
+        var byteFile = document.GeneratePdf();
 
         return byteFile;
     }

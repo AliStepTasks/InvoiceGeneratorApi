@@ -7,7 +7,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
+public class InvoiceDocument : IDocument
 {
     public InvoiceModel Model { get; }
 
@@ -20,18 +20,6 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
 
     public void Compose(IDocumentContainer container)
     {
-        container
-            .Page(page =>
-            {
-                page.Margin(50);
-
-                page.Header().Height(100).Background(Colors.Grey.Lighten1);
-                page.Content().Background(Colors.Grey.Lighten3);
-                page.Footer().Height(50).Background(Colors.Grey.Lighten1);
-            });
-
-        /* code omitted */
-
         container.Page(page =>
         {
             page.Margin(50);
@@ -50,13 +38,12 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
     }
     void ComposeHeader(IContainer container)
     {
-        var titleStyle = TextStyle.Default.FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
-
         container.Row(row =>
         {
             row.RelativeItem().Column(column =>
             {
-                column.Item().Text($"Invoice #{Model.InvoiceNumber}").Style(titleStyle);
+                column.Item().Text($"Invoice #{Model.InvoiceNumber}")
+                    .FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
 
                 column.Item().Text(text =>
                 {
@@ -78,28 +65,7 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
     void ComposeContent(IContainer container)
     {
         container
-            .PaddingVertical(40)
-            .Height(250)
-            .Background(Colors.Grey.Lighten3)
-            .AlignCenter()
-            .AlignMiddle()
-            .Text("Content").FontSize(16);
-
-        /* code */
-
-        container.PaddingVertical(40).Column(column =>
-        {
-            column.Spacing(5);
-
-            column.Item().Element(ComposeTable);
-
-            if (!string.IsNullOrWhiteSpace(Model.InvoiceDto.Comment))
-                column.Item().PaddingTop(25).Element(ComposeComments);
-        });
-
-        /* code */
-
-        container.PaddingVertical(40).Column(column =>
+            .Column(column =>
         {
             column.Spacing(5);
 
@@ -112,7 +78,7 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
 
             column.Item().Element(ComposeTable);
 
-            var totalPrice = Model.InvoiceDto.ToJToken;
+            var totalPrice = Model.InvoiceDto.TotalSum;
             column.Item().AlignRight().Text($"Grand total: {totalPrice}$").FontSize(14);
 
             if (!string.IsNullOrWhiteSpace(Model.InvoiceDto.Comment))
@@ -122,14 +88,7 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
 
     void ComposeTable(IContainer container)
     {
-        container
-            .Height(250)
-            .Background(Colors.Grey.Lighten3)
-            .AlignCenter()
-            .AlignMiddle()
-            .Text("Table").FontSize(16);
-
-        /* code */
+        var headerStyle = TextStyle.Default.SemiBold();
 
         container.Table(table =>
         {
@@ -146,11 +105,11 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
             // step 2
             table.Header(header =>
             {
-                header.Cell().Element(CellStyle).Text("#");
-                header.Cell().Element(CellStyle).Text("Product");
-                header.Cell().Element(CellStyle).AlignRight().Text("Unit price");
-                header.Cell().Element(CellStyle).AlignRight().Text("Quantity");
-                header.Cell().Element(CellStyle).AlignRight().Text("Total");
+                header.Cell().Text("#");
+                header.Cell().Text("Product").Style(headerStyle);
+                header.Cell().AlignRight().Text("Unit price").Style(headerStyle);
+                header.Cell().AlignRight().Text("Quantity").Style(headerStyle);
+                header.Cell().AlignRight().Text("Total").Style(headerStyle);
 
                 static IContainer CellStyle(IContainer container)
                 {
@@ -161,26 +120,27 @@ public class InvoiceDocument : QuestPDF.Infrastructure.IDocument
             // step 3
             foreach (var row in Model.InvoiceDto.Rows)
             {
-                table.Cell().Element(CellStyle).Text(Model.InvoiceDto.Rows.ToList().IndexOf(row) + 1);
+                var index = Model.InvoiceDto.Rows.ToList().IndexOf(row) + 1;
+
+                table.Cell().Element(CellStyle).Text(index);
                 table.Cell().Element(CellStyle).Text(row.Service);
                 table.Cell().Element(CellStyle).AlignRight().Text($"{row.Amount}$");
-                table.Cell().Element(CellStyle).AlignRight().Text(row.Quantity);
+                table.Cell().Element(CellStyle).AlignRight().Text($"{row.Quantity}$");
                 table.Cell().Element(CellStyle).AlignRight().Text($"{row.Sum}$");
 
-                static IContainer CellStyle(IContainer container)
-                {
-                    return container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5);
-                }
+                static IContainer CellStyle(IContainer container) =>
+                    container.BorderBottom(1)
+                    .BorderColor(Colors.Grey.Lighten2).PaddingVertical(5);
             }
         });
     }
 
     void ComposeComments(IContainer container)
     {
-        container.Background(Colors.Grey.Lighten3).Padding(10).Column(column =>
+        container.ShowEntire().Background(Colors.Grey.Lighten3).Padding(10).Column(column =>
         {
             column.Spacing(5);
-            column.Item().Text("Comments").FontSize(14);
+            column.Item().Text("Comments").FontSize(14).SemiBold();
             column.Item().Text(Model.InvoiceDto.Comment);
         });
     }

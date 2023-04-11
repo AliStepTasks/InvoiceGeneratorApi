@@ -24,6 +24,7 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class InvoicesController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
@@ -38,7 +39,6 @@ namespace InvoiceGeneratorApi.Controllers
         {
             _context = context;
             _invoiceService = serviceInvoice;
-
         }
 
         /// <summary>
@@ -142,9 +142,9 @@ namespace InvoiceGeneratorApi.Controllers
         /// <returns>The updated invoice.</returns>
         // PUT: api/InvoiceDTOes/5
         [HttpPut("status")]
-        public async Task<ActionResult<InvoiceDTO>> PutInvoiceStatus(int id, InvoiceStatus status)
+        public async Task<ActionResult<InvoiceDTO>> ChangeInvoiceStatus(int invoiceId, InvoiceStatus status)
         {
-            var invoice = await _invoiceService.ChangeInvoiceStatus(id, status);
+            var invoice = await _invoiceService.ChangeInvoiceStatus(invoiceId, status);
 
             return invoice is not null
                 ? invoice
@@ -158,14 +158,14 @@ namespace InvoiceGeneratorApi.Controllers
         /// <returns>The deleted invoice.</returns>
         // DELETE: api/InvoiceDTOes/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<InvoiceDTO>> DeleteInvoice(int id)
+        public async Task<ActionResult<InvoiceDTO>> DeleteInvoice(int invoiceId)
         {
             if (_context.Invoices == null)
             {
                 return NotFound();
             }
 
-            var deletedInvoice = await _invoiceService.DeleteInvoice(id);
+            var deletedInvoice = await _invoiceService.DeleteInvoice(invoiceId);
 
             return deletedInvoice is not null
                 ? deletedInvoice
@@ -175,9 +175,9 @@ namespace InvoiceGeneratorApi.Controllers
         /// <summary>
         /// Generates a PDF of an invoice.
         /// </summary>
-        /// <param name="id">The ID of the invoice to generate a PDF for.</param>
+        /// <param name="invoiceId">The ID of the invoice to generate a PDF for.</param>
         /// <returns>A file containing the generated PDF.</returns>
-        [HttpGet("Generate Invoice PDF")]
+        [HttpGet("Generate Invoice as PDF")]
         public async Task<IActionResult> GenerateInvoicePDF(int invoiceId)
         {
             var fileBytes = await _invoiceService.GenerateInvoicePDF(invoiceId);
@@ -185,7 +185,12 @@ namespace InvoiceGeneratorApi.Controllers
             return File(fileBytes, "application/pdf", "invoice.pdf");
         }
 
-        [HttpGet("Generate Invoice DocX")]
+        /// <summary>
+        /// Generates an invoice as a DocX file for the specified invoice ID.
+        /// </summary>
+        /// <param name="invoiceId">The ID of the invoice to generate.</param>
+        /// <returns>An IActionResult representing the generated DocX file, or a Problem object if an error occurred.</returns>
+        [HttpGet("Generate Invoice as DocX")]
         public async Task<IActionResult> GenerateInvoiceDocX(int invoiceId)
         {
 

@@ -4,7 +4,7 @@ using QuestPDF.Infrastructure;
 
 namespace InvoiceGeneratorApi.PdfRelated;
 
-public class AddressComponent : QuestPDF.Infrastructure.IComponent
+public class AddressComponent : IComponent
 {
     private string Title { get; }
     private Address Address { get; }
