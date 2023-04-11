@@ -14,6 +14,8 @@ using System.Diagnostics;
 using InvoiceGeneratorApi.PdfRelated.Models;
 using InvoiceGeneratorApi.Services;
 using Bogus;
+using Xceed.Words.NET;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -176,43 +178,23 @@ namespace InvoiceGeneratorApi.Controllers
         /// <param name="id">The ID of the invoice to generate a PDF for.</param>
         /// <returns>A file containing the generated PDF.</returns>
         [HttpGet("Generate Invoice PDF")]
-        public async Task<IActionResult> GenerateInvoicePDF(int id)
+        public async Task<IActionResult> GenerateInvoicePDF(int invoiceId)
         {
-            var invoice = await _context.Invoices.FindAsync(id);
-            var customer = _context.Customers.FirstOrDefault(x => x.Id == invoice.CustomerId);
-            var filePath = "invoice.pdf";
+            var fileBytes = await _invoiceService.GenerateInvoicePDF(invoiceId);
 
-            var faker = new Faker();
-            var model = new InvoiceModel
-            {
-                InvoiceDto = DtoAndReverseConverter.InvoiceToInvoiceDto(invoice),
-                InvoiceNumber = Guid.NewGuid().ToString(),
-                DueDate = invoice.CreatedAt.AddDays(14).DateTime,
-                SellerAddress = new Address
-                {
-                    CompanyName = "Schofrie LLC",
-                    Street = faker.Address.StreetAddress(),
-                    City = faker.Address.City(),
-                    State = faker.Address.State(),
-                    Email = "aguliyev45@gmail.com",
-                    Phone = "+994 (050) 499 97 44"
-                },
-                CustomerAddress = new Address
-                {
-                    CompanyName = null,
-                    Street = customer.Address,
-                    City = faker.Address.City(),
-                    State = faker.Address.State(),
-                    Email = customer.Email,
-                    Phone = customer.PhoneNumber
-                },
-            };
+            return File(fileBytes, "application/pdf", "invoice.pdf");
+        }
 
-            var document = new InvoiceDocument(model);
+        [HttpGet("Generate Invoice DocX")]
+        public async Task<IActionResult> GenerateInvoiceDocX(int invoiceId)
+        {
 
-            var byteFile = document.GenerateXps();
+            var fileBytes = await _invoiceService.GenerateInvoiceDocX(invoiceId);
 
-            return File(byteFile, "application/pdf", filePath);
+            // Return the File
+            return fileBytes is not null
+                ? File(fileBytes, "application/docx", "invoice.docx")
+                : Problem("Something went wrong");
         }
     }
 }

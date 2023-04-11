@@ -15,6 +15,6 @@ public interface IServiceInvoice
     Task<InvoiceDTO> DeleteInvoice(int id);
     Task<InvoiceDTO> GetInvoice(int id);
     Task<PaginationDTO<InvoiceDTO>> GetInvoices(int page, int pageSize, string? search, OrderBy? orderBy);
-    Task<(MemoryStream, string, string)> GenerateInvoicePDF(int id);
-    Task<IActionResult> GenerateInvoiceDOCx(int id);
+    Task<byte[]> GenerateInvoicePDF(int id);
+    Task<byte[]> GenerateInvoiceDocX(int id);
 }

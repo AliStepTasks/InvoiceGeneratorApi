@@ -1,13 +1,18 @@
-﻿using Bogus.DataSets;
+﻿using Bogus;
+using Bogus.DataSets;
 using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Models;
+using InvoiceGeneratorApi.PdfRelated.Models;
 using InvoiceGeneratorApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Utilities;
+using QuestPDF.Fluent;
 using System;
+using Xceed.Words.NET;
 
 namespace InvoiceGeneratorApi.Interfaces;
 
@@ -200,51 +205,90 @@ public class InvoiceService : IServiceInvoice
         return paginatedList;
     }
 
-    public async Task<(MemoryStream, string, string)> GenerateInvoicePDF(int id)
+    public async Task<byte[]> GenerateInvoicePDF(int id)
     {
-        return (null!, null!, null!);
+        var invoice = await _context.Invoices.FindAsync(id);
+        var customer = _context.Customers.FirstOrDefault(x => x.Id == invoice.CustomerId);
+
+        var faker = new Faker();
+        var model = new InvoiceModel
+        {
+            InvoiceDto = DtoAndReverseConverter.InvoiceToInvoiceDto(invoice),
+            InvoiceNumber = Guid.NewGuid().ToString(),
+            DueDate = invoice.CreatedAt.AddDays(14).DateTime,
+            SellerAddress = new PdfRelated.Models.Address
+            {
+                CompanyName = "Schofrie LLC",
+                Street = faker.Address.StreetAddress(),
+                City = faker.Address.City(),
+                State = faker.Address.State(),
+                Email = "aguliyev45@gmail.com",
+                Phone = "+994 (050) 499 97 44"
+            },
+            CustomerAddress = new PdfRelated.Models.Address
+            {
+                CompanyName = null,
+                Street = customer.Address,
+                City = faker.Address.City(),
+                State = faker.Address.State(),
+                Email = customer.Email,
+                Phone = customer.PhoneNumber
+            },
+        };
+
+        var document = new InvoiceDocument(model);
+
+        var byteFile = document.GenerateXps();
+
+        return byteFile;
     }
 
-    public Task<IActionResult> GenerateInvoiceDOCx(int id)
+    public async Task<byte[]> GenerateInvoiceDocX(int id)
     {
-        throw new NotImplementedException();
-    }
+        var invoice = await _context.Invoices.FindAsync(id);
+        invoice.Rows = _context.InvoiceRows
+            .Where(x => x.InvoiceId == invoice.Id)
+            .Select(x => DtoAndReverseConverter.InvoiceRowToInvoiceRowDto(x))
+            .ToArray();
 
-    private string HtmlContentGet(Invoice invoice)
-    {
-        var customer = _context.Customers.FirstOrDefault(c => c.Id == invoice.CustomerId);
+        var customer = await _context.Customers.FindAsync(invoice.CustomerId);
 
+        // Create a new document
+        DocX document = DocX.Create("Invoice.docx");
 
-        //string htmlcontent = "<head><title>Invoice</title>";
-        //htmlcontent += "<link rel='stylesheet' href='wwwRoot/invoiceStyle.css'></head>";
+        // Add content to the document
+        document.InsertParagraph().AppendLine("Invoice Details").Bold().FontSize(16);
+        document.InsertParagraph().AppendLine($"Invoice Number: {invoice.Id}");
+        document.InsertParagraph().AppendLine($"Customer Name: {customer.Name}");
+        document.InsertParagraph().AppendLine($"Start Date: {invoice.StartDate}");
+        document.InsertParagraph().AppendLine($"End Date: {invoice.EndDate}");
+        document.InsertParagraph().AppendLine("Invoice Rows:");
+        if (invoice.Rows != null)
+        {
+            foreach (var row in invoice.Rows)
+            {
+                document.InsertParagraph().AppendLine($"- Service: {row.Service}, Quantity: {row.Quantity}, Unit Price: {row.Amount}$, Total: {row.Sum}$");
+            }
+        }
+        document.InsertParagraph().AppendLine($"Total Sum: {invoice.TotalSum}$");
+        if (!string.IsNullOrEmpty(invoice.Comment))
+        {
+            document.InsertParagraph().AppendLine($"Comment: {invoice.Comment}");
+        }
+        document.InsertParagraph().AppendLine($"Status: {invoice.Status}");
+        document.InsertParagraph().AppendLine($"Created At: {invoice.CreatedAt}");
 
-        //htmlcontent += "<div class=\"container\">";
-        //htmlcontent += "<div class=\"row invoice-header px-3 py-2\">";
-        //htmlcontent += "<div class=\"col-4\">";
-        //htmlcontent += "<p>Schofire LLC</p>";
-        //htmlcontent += "<h1>INVOICE</h1>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "<div class=\"col-4 text-right\">";
-        //htmlcontent += "<p>+994 (050) 499 97 44</p>";
-        //htmlcontent += "<p>aguliyev45@gmail.com</p>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "<div class=\"col-4 text-right\">";
-        //htmlcontent += "<p>3522 Zafarano Dr #F1\r\n</p>";
-        //htmlcontent += "<p>Santa Fe, New York, 87505</p>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "<div class=\"invoice-content row px-5 pt-5\">";
-        //htmlcontent += "<div class=\"col-3\">";
-        //htmlcontent += "<h5 class=\"almost-gray mb-3\">Invoiced to:</h5>";
-        //htmlcontent += $"<p class=\"gray-ish\">{customer.Name}</p>";
-        //htmlcontent += $"<p class=\"gray-ish\">{customer.Address}.</p>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "</div>";
-        //htmlcontent += "";
+        // Save the document to a MemoryStream
+        MemoryStream stream = new MemoryStream();
+        document.SaveAs(stream);
+        stream.Position = 0;
 
-        string htmlcontent = "  <div class=\"container\">\r\n  <div class=\"row invoice-header px-3 py-2\">\r\n    <div class=\"col-4\">\r\n      <p>Company Name</p>\r\n      <h1>INVOICE</h1>\r\n    </div>\r\n    <div class=\"col-4 text-right\">\r\n      <p>(011)-123-1243</p>\r\n      <p>email@adress.com</p>\r\n      <p>personal-website.com</p>\r\n    </div>\r\n    <div class=\"col-4 text-right\">\r\n      <p>Street Adress</p>\r\n      <p>City, State Adress, ZIP</p>\r\n      <p>VAT ID / PID</p>\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"invoice-content row px-5 pt-5\">\r\n    <div class=\"col-3\">\r\n      <h5 class=\"almost-gray mb-3\">Invoiced to:</h5>\r\n      <p class=\"gray-ish\">Client Name</p>\r\n      <p class=\"gray-ish\">Client Adress spanning on two rows hopefully.</p>\r\n      <p class=\"gray-ish\">VAT ID: 12091803</p>\r\n    </div>\r\n    <div class=\"col-3\">\r\n      <h5 class=\"almost-gray\">Invoice number:</h5>\r\n      <p class=\"gray-ish\"># 123456789</p>\r\n\r\n      <h5 class=\"almost-gray\">Date of Issue:</h5>\r\n      <p class=\"gray-ish\">01 / 01 / 20 20 </p>\r\n\r\n    </div>\r\n    <div class=\"col-6 text-right total-field\">\r\n      <h4 class=\"almost-gray\">Invoice Total</h4>\r\n      <h1 class=\"gray-ish\">634,57 <span class=\"curency\">&euro;</span></h1>\r\n      <h5 class=\"almost-gray due-date\">Due Date: 01 / 01 / 20 20</h5>\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"row mt-5\">\r\n    <div class=\"col-10 offset-1 invoice-table pt-1\">\r\n      <table class=\"table table-hover\">\r\n            <thead class=\"thead splitForPrint\">\r\n              <tr>\r\n                <th scope=\"col gray-ish\">NO.</th>\r\n                <th scope=\"col gray-ish\">Item</th>\r\n                <th scope=\"col gray-ish\">Qty.</th>\r\n                <th scope=\"col gray-ish\">U. Price</th>\r\n                <th scope=\"col gray-ish\">VAT %</th>\r\n                <th scope=\"col gray-ish\">Discount</th>\r\n                <th class=\"text-right\" scope=\"col gray-ish\">Amount</th>\r\n              </tr>\r\n            </thead>\r\n            <tbody>\r\n              <tr>\r\n                <th scope=\"row\">1</th>\r\n                <td class=\"item\">Item 1</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span></td>\r\n                <td>5  %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span></td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">2</th>\r\n                <td class=\"item\">Item 2</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td></td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">3</th>\r\n                <td class=\"item\">Item 3</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">4</th>\r\n                <td class=\"item\">Item 4</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span></td>\r\n                <td>5  %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span></td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">5</th>\r\n                <td class=\"item\">Item 5</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td></td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">6</th>\r\n                <td class=\"item\">Item 6</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">7</th>\r\n                <td class=\"item\">Item 7</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span></td>\r\n                <td>5  %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span></td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">8</th>\r\n                <td class=\"item\">Item 8</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td></td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">9</th>\r\n                <td class=\"item\">Item 9</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">10</th>\r\n                <td class=\"item\">Item 10</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">11</th>\r\n                <td class=\"item\">Item 11</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">12</th>\r\n                <td class=\"item\">Item 12</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">13</th>\r\n                <td class=\"item\">Item 13</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">14</th>\r\n                <td class=\"item\">Item 13</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">15</th>\r\n                <td class=\"item\">Item 15</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">16</th>\r\n                <td class=\"item\">Item 16</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">17</th>\r\n                <td class=\"item\">Item 17</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">18</th>\r\n                <td class=\"item\">Item 18</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">19</th>\r\n                <td class=\"item\">Item 19</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">20</th>\r\n                <td class=\"item\">Item 20</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">21</th>\r\n                <td class=\"item\">Item 21</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">22</th>\r\n                <td class=\"item\">Item 22</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row\">23</th>\r\n                <td class=\"item\">Item 23</td>\r\n                <td>1</td>\r\n                <td>25 <span class=\"currency\">&euro;</span> </td>\r\n                <td>13 %</td>\r\n                <td>5  %</td>\r\n                <td class=\"text-right\">28,75 <span class=\"currency\">&euro;</span> </td>\r\n              </tr>\r\n            </tbody>\r\n          </table>\r\n    </div>\r\n  </div>\r\n<div class=\"row invoice_details\">\r\n   <!-- invoiced to details -->\r\n   <div class=\"col-4 offset-1 pt-3\">\r\n     <h4 class=\"gray-ish\">Invoice Summary & Notes</h4>\r\n     <p class=\"pt-3 almost-gray\">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras purus sapien, ullamcorper quis orci eu, consectetur congue nulla. In a fermentum est, ornare maximus neque. Phasellus metus risus, mattis ac sapien in, volutpat laoreet lectus. Maecenas tincidunt condimentum quam, ut porttitor dui ultricies nec.</p>\r\n   </div>\r\n   <!-- Invoice assets and total -->\r\n        <div class=\"offset-1 col-5 mb-3 pr-4 sub-table\">\r\n          <table class=\"table table-borderless\">\r\n            <tbody>\r\n              <tr>\r\n                <th scope=\"row gray-ish\">Subtotal</th>\r\n                <td class=\"text-right\">75 <span class=\"currency \">&euro;</span></td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row gray-ish\">VAT</th>\r\n                <td class=\"text-right\">11,25 <span class=\"currency\">&euro;</span></td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row gray-ish\">Taxes*</th>\r\n                <td class=\"text-right\">11,25 <span class=\"currency\">&euro;</span></td>\r\n              </tr>\r\n              <tr>\r\n                <th scope=\"row gray-ish\">Discounts</th>\r\n                <td class=\"text-right\">7,5 <span class=\"currency\">&euro;</span></td>\r\n              </tr>\r\n              <tr class=\"last-row\">\r\n                  <th scope=\"row\"><h4>Total</h4></th>\r\n                  <td class=\"text-right\"><h4><span class=\"currency\">&euro;</span> 90,25</h4></td>\r\n              </tr>\r\n            </tbody>\r\n          </table>\r\n        </div>\r\n   </div>\r\n  <p class=\"text-center pb-3\"><em> Taxes will be calculated in &euro; regarding transport and other taxable services.</em></p>\r\n</div>";
+        // Convert the MemoryStream to a byte array
+        byte[] fileBytes = stream.ToArray();
 
-        return htmlcontent;
+        // Close the document
+        document.Dispose();
+
+        return fileBytes;
     }
 }

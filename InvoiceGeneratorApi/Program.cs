@@ -1,14 +1,10 @@
-
 using Microsoft.EntityFrameworkCore;
 using InvoiceGeneratorApi.Data;
-
 using System.Text.Json.Serialization;
 using InvoiceGeneratorApi.Filters;
 using InvoiceGeneratorApi.Services;
 using FluentValidation.AspNetCore;
-
 using InvoiceGeneratorApi.Interfaces;
-
 using InvoiceGeneratorApi.Auth;
 using InvoiceGeneratorApi.Validators;
 using FluentValidation;
