@@ -24,7 +24,6 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class InvoicesController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;

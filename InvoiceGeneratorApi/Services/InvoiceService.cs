@@ -217,14 +217,17 @@ public class InvoiceService : IServiceInvoice
             .Select(x => DtoAndReverseConverter.InvoiceRowToInvoiceRowDto(x))
             .ToArray();
 
-        var customer = await _context.Customers.FindAsync(invoice.CustomerId);
-        if(customer is null)
+        var customer = new Customer();
+        var invoiceCustomer = await _context.Customers.FindAsync(invoice.CustomerId);
+        if (invoiceCustomer is null)
         {
             customer.Name = "Unknown Customer";
             customer.Address = "Unknown Adress";
             customer.Email = "Unknown Email";
             customer.PhoneNumber = "Unknown Number";
         }
+        else
+            customer = invoiceCustomer;
 
         var faker = new Faker();
         var model = new InvoiceModel
