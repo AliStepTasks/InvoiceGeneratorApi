@@ -12,6 +12,7 @@ using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Serilog;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -51,7 +52,8 @@ namespace InvoiceGeneratorApi.Controllers
         {
             if (_context.Customers is null)
             {
-                return NotFound();
+                Log.Information("There is no any customer in database.");
+                return Problem("There is no any customer in database.");
             }
 
             var paginatedList = await _customerService.GetCustomers(request.Page, request.PageSize, search, orderBy);
@@ -72,7 +74,8 @@ namespace InvoiceGeneratorApi.Controllers
         {
             if (_context.Customers is null)
             {
-                return NotFound();
+                Log.Information("There is no any customer in database.");
+                return Problem("There is no any customer in database.");
             }
 
             var customerDto = await _customerService.GetCustomer(Email);
@@ -100,10 +103,17 @@ namespace InvoiceGeneratorApi.Controllers
             string Email, string? Name, string? Address,
             string? PhoneNumber, string Password, string PasswordConfirmation)
         {
-            if (Email is null || Password is null || PasswordConfirmation is null)
+            if (_context.Customers is null)
+            {
+                Log.Information("There is no any customer in database.");
+                return Problem("There is no any customer in database.");
+            }
+
+            if (Email is null || Password is null || PasswordConfirmation is null || Password != PasswordConfirmation)
             {
                 return BadRequest();
             }
+
             var updatedCustomer = await _customerService.EditCustomer(Email, Name, Address, PhoneNumber, Password);
             
             return updatedCustomer is not null
@@ -121,6 +131,12 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpPost("Email, Status")]
         public async Task<ActionResult<CustomerDTO>> Change(string Email, CustomerStatus Status)
         {
+            if (_context.Customers is null)
+            {
+                Log.Information("There is no any customer in database.");
+                return Problem("There is no any customer in database.");
+            }
+
             if (Email is null)
             {
                 return BadRequest();
@@ -143,9 +159,15 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpPost("CustomerDTO")]
         public async Task<ActionResult<CustomerDTO>> Post(CustomerDTO customerDTO)
         {
+            if (_context.Customers is null)
+            {
+                Log.Information("There is no any customer in database.");
+                return Problem("There is no any customer in database.");
+            }
+
             if (customerDTO is null)
             {
-                return Problem("Entity set 'InvoiceApiDbContext.Customers'  is null.");
+                return BadRequest();
             }
 
             customerDTO = await _customerService.AddCustomer(customerDTO);
@@ -166,7 +188,8 @@ namespace InvoiceGeneratorApi.Controllers
         {
             if (_context.Customers is null)
             {
-                return NotFound();
+                Log.Information("There is no any customer in database.");
+                return Problem("There is no any customer in database.");
             }
 
             var isCustomerDeleted = await _customerService.DeleteCustomer(Email);

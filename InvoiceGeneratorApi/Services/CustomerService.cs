@@ -1,4 +1,5 @@
-﻿using InvoiceGeneratorApi.Data;
+﻿using DocumentFormat.OpenXml.Presentation;
+using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
@@ -6,17 +7,22 @@ using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Serilog;
 
 namespace InvoiceGeneratorApi.Services;
 
 public class CustomerService : ICustomerService
 {
     private readonly InvoiceApiDbContext _context;
+    private readonly IMemoryCache _memoryCache;
 
-    public CustomerService(InvoiceApiDbContext context)
+    public CustomerService(InvoiceApiDbContext context, IMemoryCache memoryCache)
     {
         _context = context;
+        _memoryCache = memoryCache;
     }
+
     public async Task<CustomerDTO> AddCustomer(CustomerDTO customerDTO)
     {
         var customer = DtoAndReverseConverter.CustomerDtoToCustomer(customerDTO);
@@ -29,18 +35,18 @@ public class CustomerService : ICustomerService
 
         customer = _context.Customers.Add(customer).Entity;
         await _context.SaveChangesAsync();
+        Log.Information($"Customer {customerDTO.Email} added to database.");
 
+        _memoryCache.Set(customer.Email, customer, TimeSpan.FromMinutes(10));
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
     public async Task<CustomerDTO> ChangeCustomerStatus(string Email, CustomerStatus Status)
     {
-        var customer = _context.Customers.FirstOrDefault(c => c.Email == Email);
+        var customer = await FindCustomer(Email);
 
         if (customer is null)
-        {
             return null;
-        }
 
         customer.Status = Status;
         customer = _context.Customers.Update(customer).Entity;
@@ -51,23 +57,23 @@ public class CustomerService : ICustomerService
 
     public async Task<object> DeleteCustomer(string Email)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == Email);
+        var customer = await FindCustomer(Email);
 
         if(customer is null)
-        {
             return null;
-        }
 
-        bool isThereValidInvoices = _context.Invoices.Count(i => i.CustomerId == customer.Id) > 0;
+        int validInvoices = _context.Invoices.Count(i => i.CustomerId == customer.Id);
 
-        if (isThereValidInvoices)
+        if (validInvoices > 0)
         {
+            Log.Information($"Customer have {validInvoices} invoices, therefore, the customer with this email -> {customer.Email} cannot be deleted.");
             return null;
         }
 
         _context.Customers.Remove(customer);
         await _context.SaveChangesAsync();
 
+        _memoryCache.Remove(customer.Email);
         return true;
     }
 
@@ -75,15 +81,14 @@ public class CustomerService : ICustomerService
         string Email, string? Name,
         string? Address, string? PhoneNumber, string Password)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync
-            (c => c.Email == Email);
+        var customer = await FindCustomer(Email);
+
+        if (customer is null)
+            return null;
 
         var isValidPassword = BCrypt.Net.BCrypt.Verify(Password, customer.Password);
-
         if (isValidPassword)
-        {
             return null;
-        }
 
         customer.Name = Name is not null ? Name : customer.Name;
         customer.Address = Address is not null ? Address : customer.Address;
@@ -92,18 +97,17 @@ public class CustomerService : ICustomerService
 
         customer = _context.Customers.Update(customer).Entity;
         await _context.SaveChangesAsync();
+        Log.Information($"Customer's account with this email -> {customer.Email} is updated.");
 
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
 
     public async Task<CustomerDTO> GetCustomer(string Email)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == Email);
+        var customer = await FindCustomer(Email);
 
         if (customer is null)
-        {
             return null;
-        }
 
         return DtoAndReverseConverter.CustomerToCustomerDto(customer);
     }
@@ -114,19 +118,14 @@ public class CustomerService : ICustomerService
 
         // Search
         if(!string.IsNullOrEmpty(search))
-        {
             query = query.Where(c => c.Name.Contains(search));
-        }
 
         // Sorting
         if(OrderBy.Ascending == orderBy)
-        {
             query = query.OrderBy(c => _context.Invoices.Count(i => i.CustomerId == c.Id));
-        }
+
         else if (OrderBy.Descending == orderBy)
-        {
             query = query.OrderByDescending(c => _context.Invoices.Count(i => i.CustomerId == c.Id));
-        }
 
         // Pagination
 
@@ -144,5 +143,20 @@ public class CustomerService : ICustomerService
         );
 
         return paginatedList;
+    }
+    private async Task<Customer> FindCustomer(string Email)
+    {
+        if(_memoryCache.TryGetValue(Email, out Customer customer))
+            return customer;
+
+        customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == Email);
+        if (customer is null)
+        {
+            Log.Information($"Customer didn't find with this email -> {customer.Email}.");
+            return null;
+        }
+
+        _memoryCache.Set(customer.Email, customer, TimeSpan.FromMinutes(10));
+        return customer;
     }
 }

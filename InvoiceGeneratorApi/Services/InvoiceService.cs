@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Utilities;
 using QuestPDF.Fluent;
+using Serilog;
 using System;
 using Xceed.Words.NET;
 
@@ -34,9 +35,7 @@ public class InvoiceService : IServiceInvoice
             .ToArray();
 
         if (invoice is null)
-        {
             return null!;
-        }
 
         invoice.Status = invoiceStatus;
         invoice = _context.Invoices.Update(invoice).Entity;
@@ -79,11 +78,11 @@ public class InvoiceService : IServiceInvoice
     /// <summary>
     /// Delete invoice by Id
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="invoiceId"></param>
     /// <returns></returns>
-    public async Task<InvoiceDTO> DeleteInvoice(int id)
+    public async Task<InvoiceDTO> DeleteInvoice(int invoiceId)
     {
-        var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.Id == id);
+        var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.Id == invoiceId);
 
         if (invoice is null || invoice.Status == InvoiceStatus.Sent ||
             invoice.Status == InvoiceStatus.Received || invoice.Status == InvoiceStatus.Rejected)
@@ -110,6 +109,7 @@ public class InvoiceService : IServiceInvoice
 
         if (invoice is null)
         {
+            Log.Information($"There is no invoice with this id -> {invoiceId}");
             return null!;
         }
 
@@ -133,14 +133,15 @@ public class InvoiceService : IServiceInvoice
     /// <summary>
     /// Get invoice by Id
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="invoiceId"></param>
     /// <returns></returns>
-    public async Task<InvoiceDTO> GetInvoice(int id)
+    public async Task<InvoiceDTO> GetInvoice(int invoiceId)
     {
-        var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.Id == id);
+        var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.Id == invoiceId);
 
         if (invoice is null)
         {
+            Log.Information($"There is no invoice with this id -> {invoiceId}");
             return null!;
         }
 
@@ -205,13 +206,15 @@ public class InvoiceService : IServiceInvoice
         return paginatedList;
     }
 
-    public async Task<byte[]> GenerateInvoicePDF(int id)
+    public async Task<byte[]> GenerateInvoicePDF(int invoiceId)
     {
-        var invoice = await _context.Invoices.FindAsync(id);
+        var invoice = await _context.Invoices.FindAsync(invoiceId);
         if(invoice is null)
         {
+            Log.Information($"There is no invoice with this id -> {invoiceId}");
             return null;
         }
+
         invoice.Rows = _context.InvoiceRows
             .Where(x => x.InvoiceId == invoice.Id)
             .Select(x => DtoAndReverseConverter.InvoiceRowToInvoiceRowDto(x))
@@ -262,9 +265,15 @@ public class InvoiceService : IServiceInvoice
         return byteFile;
     }
 
-    public async Task<byte[]> GenerateInvoiceDocX(int id)
+    public async Task<byte[]> GenerateInvoiceDocX(int invoiceId)
     {
-        var invoice = await _context.Invoices.FindAsync(id);
+        var invoice = await _context.Invoices.FindAsync(invoiceId);
+        if (invoice is null)
+        {
+            Log.Information($"There is no invoice with this id -> {invoiceId}");
+            return null;
+        }
+
         invoice.Rows = _context.InvoiceRows
             .Where(x => x.InvoiceId == invoice.Id)
             .Select(x => DtoAndReverseConverter.InvoiceRowToInvoiceRowDto(x))

@@ -4,18 +4,8 @@ using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Authorization;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-using InvoiceGeneratorApi.PdfRelated;
-using System.Diagnostics;
-using InvoiceGeneratorApi.PdfRelated.Models;
-using InvoiceGeneratorApi.Services;
-using Bogus;
-using Xceed.Words.NET;
-using Microsoft.EntityFrameworkCore;
+using Serilog;
+using InvoiceGeneratorApi.Models;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -54,7 +44,8 @@ namespace InvoiceGeneratorApi.Controllers
         {
             if (_context.Invoices is null)
             {
-                return NotFound();
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
             }
 
             var paginatedList = await _invoiceService.GetInvoices(
@@ -77,7 +68,8 @@ namespace InvoiceGeneratorApi.Controllers
         {
             if (_context.Invoices is null)
             {
-                return NotFound();
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
             }
 
             var invoiceDto = await _invoiceService.GetInvoice(id);
@@ -96,12 +88,14 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpPost]
         public async Task<ActionResult<InvoiceDTO>> PostInvoice(InvoiceDTO invoiceDTO)
         {
-            if (_context.Invoices == null)
+            if (_context.Invoices is null)
             {
-                return BadRequest();
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
             }
 
             var invoice = await _invoiceService.CreateInvoice(invoiceDTO);
+            Log.Information($"The invoice is created according to this id -> {invoice.Id}");
 
             return invoice is not null
                 ? invoice
@@ -121,12 +115,20 @@ namespace InvoiceGeneratorApi.Controllers
         // PUT: api/InvoiceDTOes/5
         [HttpPut("invoiceId, customerId, startDate, endDate, comment, status")]
         public async Task<ActionResult<InvoiceDTO>> PutInvoice(
-        int invoiceId, int? customerId, DateTimeOffset? startDate,
-        DateTimeOffset? endDate, string? comment, InvoiceStatus? status)
+            int invoiceId, int? customerId, DateTimeOffset? startDate,
+            DateTimeOffset? endDate, string? comment, InvoiceStatus? status)
         {
+            if (_context.Invoices is null)
+            {
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
+            }
+
             var invoice = await _invoiceService.EditInvoice(
                 invoiceId, customerId, startDate,
                 endDate, comment, status);
+
+            Log.Information($"The invoice is updated according to this id -> {invoiceId}");
 
             return invoice is not null
                 ? invoice
@@ -136,14 +138,21 @@ namespace InvoiceGeneratorApi.Controllers
         /// <summary>
         /// Changes the status of an invoice.
         /// </summary>
-        /// <param name="id">The ID of the invoice to change the status of.</param>
+        /// <param name="invoiceId">The ID of the invoice to change the status of.</param>
         /// <param name="status">The new status for the invoice.</param>
         /// <returns>The updated invoice.</returns>
         // PUT: api/InvoiceDTOes/5
         [HttpPut("status")]
         public async Task<ActionResult<InvoiceDTO>> ChangeInvoiceStatus(int invoiceId, InvoiceStatus status)
         {
+            if (_context.Invoices is null)
+            {
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
+            }
+
             var invoice = await _invoiceService.ChangeInvoiceStatus(invoiceId, status);
+            Log.Information($"The status of invoice is changed to this status -> {status} according to this id -> {invoiceId}");
 
             return invoice is not null
                 ? invoice
@@ -153,18 +162,20 @@ namespace InvoiceGeneratorApi.Controllers
         /// <summary>
         /// Deletes an invoice.
         /// </summary>
-        /// <param name="id">The ID of the invoice to delete.</param>
+        /// <param name="invoiceId">The ID of the invoice to delete.</param>
         /// <returns>The deleted invoice.</returns>
         // DELETE: api/InvoiceDTOes/5
         [HttpDelete("{id}")]
         public async Task<ActionResult<InvoiceDTO>> DeleteInvoice(int invoiceId)
         {
-            if (_context.Invoices == null)
+            if (_context.Invoices is null)
             {
-                return NotFound();
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
             }
 
             var deletedInvoice = await _invoiceService.DeleteInvoice(invoiceId);
+            Log.Information($"The invoice is deleted according to this id -> {invoiceId}");
 
             return deletedInvoice is not null
                 ? deletedInvoice
@@ -179,7 +190,14 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpGet("Generate Invoice as PDF")]
         public async Task<IActionResult> GenerateInvoicePDF(int invoiceId)
         {
+            if (_context.Invoices is null)
+            {
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
+            }
+
             var fileBytes = await _invoiceService.GenerateInvoicePDF(invoiceId);
+            Log.Information($"The Pdf invoice is generated according to this id -> {invoiceId}");
 
             return File(fileBytes, "application/pdf", "invoice.pdf");
         }
@@ -192,8 +210,14 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpGet("Generate Invoice as DocX")]
         public async Task<IActionResult> GenerateInvoiceDocX(int invoiceId)
         {
+            if (_context.Invoices is null)
+            {
+                Log.Information("There is no any invoice in database.");
+                return Problem("There is no any invoice in database.");
+            }
 
             var fileBytes = await _invoiceService.GenerateInvoiceDocX(invoiceId);
+            Log.Information($"The DocX invoice is generated according to this id -> {invoiceId}");
 
             // Return the File
             return fileBytes is not null

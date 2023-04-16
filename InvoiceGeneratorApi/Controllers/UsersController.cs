@@ -13,6 +13,7 @@ using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.DTO.Auth;
 using Microsoft.AspNetCore.Identity;
 using InvoiceGeneratorApi.Auth;
+using Serilog;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -26,21 +27,19 @@ namespace InvoiceGeneratorApi.Controllers
         private readonly InvoiceApiDbContext _context;
         private readonly IUserService _userService;
         private readonly IJwtService _jwtService;
-        //private readonly UserManager<User> _userManager;
-        //private readonly SignInManager<User> _signInManager;
 
         /// <summary>
         /// Initializes a new instance of the UsersController class.
         /// </summary>
         /// <param name="context">The InvoiceApiDbContext used to access the database.</param>
         /// <param name="userService">The IUserService used to perform operations on users.</param>
-        public UsersController(InvoiceApiDbContext context, IUserService userService, IJwtService jwtService/*, UserManager<User> userManager, SignInManager<User> signInManager*/)
+        public UsersController(
+            InvoiceApiDbContext context, IUserService userService, 
+            IJwtService jwtService)
         {
             _context = context;
             _userService = userService;
             _jwtService = jwtService;
-            //_userManager = userManager;
-            //_signInManager = signInManager;
         }
 
         /// <summary>
@@ -57,10 +56,12 @@ namespace InvoiceGeneratorApi.Controllers
             string Email, string OldPassword,
             string NewPassword, string NewPasswordConfirmation)
         {
-            if (_context.Users == null)
+            if (_context.Users is null)
             {
-                return NotFound();
+                Log.Error("There is no any user in database.");
+                return Problem("There is no any user in database.");
             }
+
             if (NewPassword != NewPasswordConfirmation)
             {
                 return Problem("Passwords don't match.");
@@ -90,6 +91,12 @@ namespace InvoiceGeneratorApi.Controllers
             string? Address, string? PhoneNumber,
             string Password, string PasswordConfirmation)
         {
+            if (_context.Users is null)
+            {
+                Log.Error("There is no any user in database.");
+                return Problem("There is no any user in database.");
+            }
+
             if (Email is null || Password is null || PasswordConfirmation is null || Password != PasswordConfirmation)
             {
                 return BadRequest();
@@ -111,6 +118,12 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpPost]
         public async Task<ActionResult<string>> RegisterUser([FromBody] UserRegisterRequest userRequest)
         {
+            if (_context.Users is null)
+            {
+                Log.Error("There is no any user in database.");
+                return Problem("There is no any user in database.");
+            }
+
             if (userRequest is null)
             {
                 return BadRequest();
@@ -121,7 +134,10 @@ namespace InvoiceGeneratorApi.Controllers
             {
                 return Problem("Something went wrong");
             }
+
             var token = _jwtService.GenerateSecurityToken(userRequest.Email);
+            if(token is not null)
+                Log.Information($"The access token -> {token} is generated for user {user.Email}");
 
             return token;
         }
@@ -138,19 +154,23 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpGet("LogIn")]
         public async Task<ActionResult<string>> LogInUser(string email, string password)
         {
-            if (email is null || password is null)
+            if (_context.Users is null)
             {
-                return BadRequest();
+                Log.Error("There is no any user in database.");
+                return Problem("There is no any user in database.");
             }
 
             var user = await _userService.LogInUser(email, password);
 
             if (user is null)
             {
-                return Problem("Something went wrong");
+                Log.Error("There is no such a user in database.");
+                return Problem("There is no such a user in database.");
             }
 
             var token = _jwtService.GenerateSecurityToken(email);
+            if (token is not null)
+                Log.Information($"The access token -> {token} is generated for user {user.Email}");
 
             return token;
         }
@@ -165,9 +185,10 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpDelete("Email, PasswordConfirmation")]
         public async Task<ActionResult<UserDTO>> DeleteUser(string Email, string PasswordConfirmation)
         {
-            if (_context.Users == null)
+            if (_context.Users is null)
             {
-                return NotFound();
+                Log.Error("There is no any user in database.");
+                return Problem("There is no any user in database.");
             }
 
             var user = await _userService.DeleteUser(Email, PasswordConfirmation);

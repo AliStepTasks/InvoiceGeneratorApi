@@ -5,49 +5,54 @@ using InvoiceGeneratorApi.DTO.Auth;
 using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Serilog;
 
 namespace InvoiceGeneratorApi.Services;
 
 public class UserService : IUserService
 {
     private readonly InvoiceApiDbContext _context;
+    private readonly IMemoryCache _memoryCache;
 
-    public UserService(InvoiceApiDbContext context)
+    public UserService(InvoiceApiDbContext context, IMemoryCache memoryCache)
     {
         _context = context;
+        _memoryCache = memoryCache;
     }
 
     public async Task<UserDTO> ChangePassword(string Email, string OldPassword, string NewPassword)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == Email);
-        var isValidPassword = BCrypt.Net.BCrypt.Verify(OldPassword, user.Password);
+        var user = await FindUser(Email, OldPassword);
 
-        if (isValidPassword)
-        {
+        if (user is null)
             return null;
-        }
 
         user.Password = BCrypt.Net.BCrypt.HashPassword(NewPassword);
         user.UpdatedAt = DateTimeOffset.UtcNow;
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
+        user.Password = NewPassword;
+
+        Log.Information($"The user {user.Email} changed password -> {OldPassword} with new one -> {NewPassword}.");
 
         return DtoAndReverseConverter.UserToUserDto(user);
     }
 
     public async Task<UserDTO> DeleteUser(string Email, string PasswordConfirmation)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == Email);
-        var isValidPassword = BCrypt.Net.BCrypt.Verify(PasswordConfirmation, user.Password);
+        var user = await FindUser(Email, PasswordConfirmation);
 
-        if (isValidPassword)
-        {
+        if (user is null)
             return null;
-        }
 
         user = _context.Users.Remove(user).Entity;
         await _context.SaveChangesAsync();
+        user.Password = PasswordConfirmation;
 
+        Log.Information($"The user with these credentials is deleted: Email:{user.Email} and Password:{PasswordConfirmation}.");
+
+        _memoryCache.Remove(user.Email);
         return DtoAndReverseConverter.UserToUserDto(user);
     }
 
@@ -55,13 +60,10 @@ public class UserService : IUserService
         string Email, string? Name,
         string? Address, string? PhoneNumber, string Password)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(c => c.Email == Email);
-        var isValidPassword = BCrypt.Net.BCrypt.Verify(Password, user.Password);
+        var user = await FindUser(Email, Password);
 
-        if (isValidPassword)
-        {
+        if (user is null)
             return null;
-        }
 
         user.Name = Name is not null ? Name : user.Name;
         user.Address = Address is not null ? Address : user.Address;
@@ -70,19 +72,22 @@ public class UserService : IUserService
 
         user = _context.Users.Update(user).Entity;
         await _context.SaveChangesAsync();
+        user.Password = Password;
+
+        Log.Information($"The user {user.Email} updated an account.");
 
         return DtoAndReverseConverter.UserToUserDto(user);
     }
 
-    public async Task<UserDTO> LogInUser(string email, string password)
+    public async Task<UserDTO> LogInUser(string Email, string Password)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-        var isValidPassword = BCrypt.Net.BCrypt.Verify(password, user.Password);
+        var user = await FindUser(Email, Password);
 
-        if (user is null || !isValidPassword)
-        {
+        if (user is null)
             return null;
-        }
+        user.Password = Password;
+
+        Log.Information($"The user {user.Email} logged in.");
 
         return DtoAndReverseConverter.UserToUserDto(user);
     }
@@ -92,9 +97,7 @@ public class UserService : IUserService
         var isExistUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userRequest.Email);
 
         if (isExistUser is not null)
-        {
             return null;
-        }
 
         var user = new User
         {
@@ -109,7 +112,29 @@ public class UserService : IUserService
 
         user = _context.Users.Add(user).Entity;
         await _context.SaveChangesAsync();
+        user.Password = userRequest.Password;
 
+        Log.Information($"A new user {user.Email} registered.");
+
+        _memoryCache.Set(user.Email, user, TimeSpan.FromMinutes(10));
         return DtoAndReverseConverter.UserToUserDto(user);
+    }
+
+    private async Task<User> FindUser(string email, string password)
+    {
+        if(_memoryCache.TryGetValue(email, out User user))
+            return user;
+
+        user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        bool isValidPassword = false;
+        if (user is not null)
+            isValidPassword = BCrypt.Net.BCrypt.Verify(password, user.Password);
+
+        if (user is null || !isValidPassword)
+            return null;
+
+        _memoryCache.Set(email, user, TimeSpan.FromMinutes(10));
+        return user;
     }
 }

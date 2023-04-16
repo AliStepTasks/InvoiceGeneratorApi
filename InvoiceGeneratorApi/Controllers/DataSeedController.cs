@@ -3,6 +3,7 @@ using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -37,11 +38,14 @@ namespace InvoiceGeneratorApi.Controllers
         public async Task<IEnumerable<Customer>> GenerateCustomers(int numberOfCustomers)
         {
             var customers = SeedDb.CustomerSeed(numberOfCustomers);
-            foreach (var cus in customers)
+            foreach (var customer in customers)
             {
-                _context.Customers.Add(cus);
+                _context.Customers.Add(customer);
             }
+
             await _context.SaveChangesAsync();
+            Log.Information($"{numberOfCustomers} customers are generated and added to the database.");
+
             return customers;
         }
 
@@ -75,6 +79,7 @@ namespace InvoiceGeneratorApi.Controllers
             }
 
             await _context.SaveChangesAsync();
+            Log.Information($"{numberOfInvoices} invoices with range of (1, {numberOfRows}) rows are generated and added to the database.");
 
             return invoices;
         }
@@ -94,6 +99,8 @@ namespace InvoiceGeneratorApi.Controllers
                 _context.Users.Add(user);
             }
             await _context.SaveChangesAsync();
+            Log.Information($"{numberOfUsers} users are generated and added to the database.");
+
             return users;
         }
     }

@@ -3,6 +3,7 @@ using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -45,6 +46,7 @@ namespace InvoiceGeneratorApi.Controllers
 
             // Generate the customer report
             var report = await _reportService.GenerateCustomerReport(customers, invoices);
+            Log.Information("The report of customers is generated in Excel format.");
 
             // Return the report as a downloadable Excel file
             return File(report,
@@ -67,6 +69,7 @@ namespace InvoiceGeneratorApi.Controllers
 
             // Generate the customer report
             var report = await _reportService.GenerateDoneWorkReport(invoices, customers);
+            Log.Information("The report of done works is generated in Excel format.");
 
             // Return the report as a downloadable Excel file
             return File(report,
@@ -89,6 +92,7 @@ namespace InvoiceGeneratorApi.Controllers
 
             // Generate the customer report
             var report = await _reportService.GenerateInvoiceReport(invoices, customers);
+            Log.Information("The report of invoices is generated in Excel format.");
 
             // Return the report as a downloadable Excel file
             return File(report,
