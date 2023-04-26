@@ -128,7 +128,11 @@ public class UserService : IUserService
         user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
         bool isValidPassword = false;
-        if (user is not null)
+
+        if (user.Password == password)
+            isValidPassword = true;
+
+        if (user is not null && !isValidPassword)
             isValidPassword = BCrypt.Net.BCrypt.Verify(password, user.Password);
 
         if (user is null || !isValidPassword)
