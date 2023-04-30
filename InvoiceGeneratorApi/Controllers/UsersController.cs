@@ -14,6 +14,7 @@ using InvoiceGeneratorApi.DTO.Auth;
 using Microsoft.AspNetCore.Identity;
 using InvoiceGeneratorApi.Auth;
 using Serilog;
+using System.Security.Claims;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -34,7 +35,7 @@ namespace InvoiceGeneratorApi.Controllers
         /// <param name="context">The InvoiceApiDbContext used to access the database.</param>
         /// <param name="userService">The IUserService used to perform operations on users.</param>
         public UsersController(
-            InvoiceApiDbContext context, IUserService userService, 
+            InvoiceApiDbContext context, IUserService userService,
             IJwtService jwtService)
         {
             _context = context;
@@ -135,7 +136,7 @@ namespace InvoiceGeneratorApi.Controllers
                 return Problem("Something went wrong");
             }
 
-            var token = _jwtService.GenerateSecurityToken(userRequest.Email);
+            var token = _jwtService.GenerateSecurityToken(user.Id, user.Email, user.Name);
             if(token is not null)
                 Log.Information($"The access token -> {token} is generated for user {user.Email}");
 
@@ -168,7 +169,7 @@ namespace InvoiceGeneratorApi.Controllers
                 return Problem("There is no such a user in database.");
             }
 
-            var token = _jwtService.GenerateSecurityToken(email);
+            var token = _jwtService.GenerateSecurityToken(user.Id, user.Email, user.Name);
             if (token is not null)
                 Log.Information($"The access token -> {token} is generated for user {user.Email}");
 

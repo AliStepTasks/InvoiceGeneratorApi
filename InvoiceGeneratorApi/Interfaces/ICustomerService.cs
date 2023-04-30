@@ -2,6 +2,7 @@
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Models;
+using InvoiceGeneratorApi.Providers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InvoiceGeneratorApi.Interfaces;
@@ -16,4 +17,5 @@ public interface ICustomerService
     Task<CustomerDTO> GetCustomer(string Email);
     Task<PaginationDTO<CustomerDTO>> GetCustomers(int page, int pageSize, string? search, OrderBy? orderBy);
     Task<object> DeleteCustomer(string Email);
+    Task SetUserInfo(UserInfo userInfo);
 }

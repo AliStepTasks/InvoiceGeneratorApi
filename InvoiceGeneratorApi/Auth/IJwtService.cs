@@ -1,8 +1,9 @@
-﻿using System.Security.Claims;
+﻿using InvoiceGeneratorApi.Models;
+using System.Security.Claims;
 
 namespace InvoiceGeneratorApi.Auth;
 
 public interface IJwtService
 {
-    string GenerateSecurityToken(string email);
+    string GenerateSecurityToken(int Id, string Email, string Name);
 }

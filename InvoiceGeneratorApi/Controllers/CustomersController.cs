@@ -13,6 +13,7 @@ using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Serilog;
+using InvoiceGeneratorApi.Providers;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -26,16 +27,24 @@ namespace InvoiceGeneratorApi.Controllers
     {
         private readonly InvoiceApiDbContext _context;
         private readonly ICustomerService _customerService;
+        private readonly IUserRequestProvider _userRequest;
+        private readonly UserInfo _userInfo;
 
         /// <summary>
         /// Initializes a new instance of the CustomersController class with the specified database context and customer service.
         /// </summary>
         /// <param name="context">The database context to use for accessing customer data.</param>
         /// <param name="customerService">The customer service to use for performing customer-related operations.</param>
-        public CustomersController(InvoiceApiDbContext context, ICustomerService customerService)
+        public CustomersController(
+            InvoiceApiDbContext context,
+            ICustomerService customerService,
+            IUserRequestProvider userRequest)
         {
             _context = context;
             _customerService = customerService;
+            _userRequest = userRequest;
+            _userInfo = _userRequest.GetUserInfo();
+            customerService.SetUserInfo(_userInfo);
         }
 
         /// <summary>

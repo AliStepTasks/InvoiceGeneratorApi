@@ -16,4 +16,5 @@ public class InvoiceApiDbContext : DbContext
 	public DbSet<Customer> Customers { get; set; }
 	public DbSet<Invoice> Invoices { get; set; }
 	public DbSet<InvoiceRow> InvoiceRows { get; set; }
+	public DbSet<UserCustomerRelation> UserCustomerRelation { get; set; }
 }

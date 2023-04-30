@@ -9,6 +9,7 @@ using InvoiceGeneratorApi.Auth;
 using InvoiceGeneratorApi.Validators;
 using FluentValidation;
 using Serilog;
+using InvoiceGeneratorApi.Providers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +51,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServiceInvoice, InvoiceService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IUserRequestProvider, UserRequestProvider>();
 builder.Services.AddTransient<InvoiceApiDbContext>();
 
 

@@ -1,4 +1,5 @@
-﻿using InvoiceGeneratorApi.Data;
+﻿using Bogus;
+using InvoiceGeneratorApi.Data;
 using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +15,6 @@ namespace InvoiceGeneratorApi.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class DataSeedController : ControllerBase
     {
         private readonly InvoiceApiDbContext _context;
@@ -37,10 +37,24 @@ namespace InvoiceGeneratorApi.Controllers
         [HttpGet("Generate Customers")]
         public async Task<IEnumerable<Customer>> GenerateCustomers(int numberOfCustomers)
         {
+            if(_context.Users is null)
+            {
+                Log.Information("No users found in database. Please seed users first.");
+                return null;
+            }
+
             var customers = SeedDb.CustomerSeed(numberOfCustomers);
+            var faker = new Faker();
             foreach (var customer in customers)
             {
                 _context.Customers.Add(customer);
+                await _context.SaveChangesAsync();
+                var userCustomerRelation = new UserCustomerRelation
+                {
+                    CustomerId = customer.Id,
+                    UserId = faker.PickRandom(_context.Users.Select(u => u.Id).ToArray())
+                };
+                _context.UserCustomerRelation.Add(userCustomerRelation);
             }
 
             await _context.SaveChangesAsync();
