@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceGeneratorApi", "InvoiceGeneratorApi\InvoiceGeneratorApi.csproj", "{1DD4439F-D802-47CC-A581-C05C667149B1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InvoiceGeneratorApi", "InvoiceGeneratorApi\InvoiceGeneratorApi.csproj", "{1DD4439F-D802-47CC-A581-C05C667149B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceApixUnitTester", "InvoiceApixUnitTester\InvoiceApixUnitTester.csproj", "{77B13C1F-CE84-47C5-BB15-79AA7777DCA6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{1DD4439F-D802-47CC-A581-C05C667149B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1DD4439F-D802-47CC-A581-C05C667149B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1DD4439F-D802-47CC-A581-C05C667149B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77B13C1F-CE84-47C5-BB15-79AA7777DCA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77B13C1F-CE84-47C5-BB15-79AA7777DCA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77B13C1F-CE84-47C5-BB15-79AA7777DCA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77B13C1F-CE84-47C5-BB15-79AA7777DCA6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

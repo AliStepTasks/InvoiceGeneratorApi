@@ -13,17 +13,6 @@ using InvoiceGeneratorApi.Providers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-//#pragma warning disable CS0618 // Type or member is obsolete
-//builder.Services
-//    .AddControllers()
-//    .AddFluentValidation(x =>
-//    {
-//        x.ImplicitlyValidateChildProperties = true!;
-//        x.RegisterValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
-//    });
-//#pragma warning restore CS0618 // Type or member is obsolete
-
 // Add services to the container.
 
 builder.Services.AddControllers().AddJsonOptions(options =>
