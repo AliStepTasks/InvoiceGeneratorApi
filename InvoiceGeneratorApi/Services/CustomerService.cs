@@ -179,7 +179,8 @@ public class CustomerService : ICustomerService
 
         if (!isThisCustomerOfUser)
         {
-            Log.Information($"Customer with this email -> {customer.Email} is not belong to this user.");
+            Log.Information($"Customer with this email -> {customer.Email} is not belong to {_userInfo.UserName}." +
+                $"Please check the credentials.");
             return null;
         }
 

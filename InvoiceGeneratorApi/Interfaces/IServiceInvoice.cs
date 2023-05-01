@@ -1,6 +1,7 @@
 ﻿using InvoiceGeneratorApi.DTO;
 using InvoiceGeneratorApi.DTO.Pagination;
 using InvoiceGeneratorApi.Enums;
+using InvoiceGeneratorApi.Providers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InvoiceGeneratorApi.Interfaces;
@@ -17,4 +18,5 @@ public interface IServiceInvoice
     Task<PaginationDTO<InvoiceDTO>> GetInvoices(int page, int pageSize, string? search, OrderBy? orderBy);
     Task<byte[]> GenerateInvoicePDF(int id);
     Task<byte[]> GenerateInvoiceDocX(int id);
+    Task SetUserInfo(UserInfo userInfo);
 }

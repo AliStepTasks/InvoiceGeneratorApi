@@ -7,6 +7,7 @@ using InvoiceGeneratorApi.Enums;
 using InvoiceGeneratorApi.Interfaces;
 using InvoiceGeneratorApi.Models;
 using InvoiceGeneratorApi.PdfRelated.Models;
+using InvoiceGeneratorApi.Providers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Utilities;
@@ -20,6 +21,7 @@ namespace InvoiceGeneratorApi.Services;
 public class InvoiceService : IServiceInvoice
 {
     private readonly InvoiceApiDbContext _context;
+    private UserInfo _userInfo;
 
     public InvoiceService(InvoiceApiDbContext context)
     {
@@ -145,12 +147,27 @@ public class InvoiceService : IServiceInvoice
             return null!;
         }
 
+        var isThisInvoiceOfUser = _context.UserCustomerRelation
+            .Any(u => u.UserId == _userInfo.UserId && u.CustomerId == invoice.CustomerId);
+
+        if (!isThisInvoiceOfUser)
+        {
+            Log.Information($"Invoice with this ID -> {invoiceId} is not belong to {_userInfo.UserName}." +
+                $"Please check the credentials.");
+            return null;
+        }
+
         var invoiceRowsDto = _context.InvoiceRows
             .Where(r => r.InvoiceId == invoice.Id)
             .Select(r => DtoAndReverseConverter.InvoiceRowToInvoiceRowDto(r));
         invoice.Rows = invoiceRowsDto.ToArray();
 
         return DtoAndReverseConverter.InvoiceToInvoiceDto(invoice);
+    }
+
+    public async Task SetUserInfo(UserInfo userInfo)
+    {
+        _userInfo = userInfo;
     }
 
     /// <summary>
@@ -163,7 +180,12 @@ public class InvoiceService : IServiceInvoice
     /// <returns></returns>
     public async Task<PaginationDTO<InvoiceDTO>> GetInvoices(int page, int pageSize, string? search, OrderBy? orderBy)
     {
-        IQueryable<Invoice> query = _context.Invoices;
+        var customersOfUser = _context.UserCustomerRelation
+            .Where(u => u.UserId == _userInfo.UserId)
+            .Select(u => u.CustomerId);
+
+
+        IQueryable<Invoice> query = _context.Invoices.Where(i => customersOfUser.Contains(i.CustomerId));
 
         // Search
         if (!string.IsNullOrEmpty(search))

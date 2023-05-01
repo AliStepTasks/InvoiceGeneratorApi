@@ -44,7 +44,7 @@ namespace InvoiceGeneratorApi.Controllers
             _customerService = customerService;
             _userRequest = userRequest;
             _userInfo = _userRequest.GetUserInfo();
-            customerService.SetUserInfo(_userInfo);
+            _customerService.SetUserInfo(_userInfo);
         }
 
         /// <summary>

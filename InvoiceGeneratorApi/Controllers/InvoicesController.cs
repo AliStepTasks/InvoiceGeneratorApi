@@ -7,6 +7,7 @@ using InvoiceGeneratorApi.Interfaces;
 using Serilog;
 using InvoiceGeneratorApi.Models;
 using Microsoft.AspNetCore.Authorization;
+using InvoiceGeneratorApi.Providers;
 
 namespace InvoiceGeneratorApi.Controllers
 {
@@ -20,16 +21,24 @@ namespace InvoiceGeneratorApi.Controllers
     {
         private readonly InvoiceApiDbContext _context;
         private readonly IServiceInvoice _invoiceService;
+        private readonly IUserRequestProvider _userRequest;
+        private readonly UserInfo _userInfo;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InvoicesController"/> class with the specified <paramref name="context"/> and <paramref name="serviceInvoice"/> parameters.
         /// </summary>
         /// <param name="context">The context used to interact with the invoice database.</param>
         /// <param name="serviceInvoice">The service used to perform operations on invoice data.</param>
-        public InvoicesController(InvoiceApiDbContext context, IServiceInvoice serviceInvoice)
+        public InvoicesController(
+            InvoiceApiDbContext context,
+            IServiceInvoice serviceInvoice,
+            IUserRequestProvider userRequest)
         {
             _context = context;
             _invoiceService = serviceInvoice;
+            _userRequest = userRequest;
+            _userInfo = _userRequest.GetUserInfo();
+            _invoiceService.SetUserInfo(_userInfo);
         }
 
         /// <summary>
